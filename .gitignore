@@ -28,9 +28,6 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# IntelliJ
-.idea
-
 # SublimeText
 *.tmlanguage.cache
 *.tmPreferences.cache
@@ -38,7 +35,5 @@ Desktop.ini
 *.sublime-workspace
 *.sublime-project
 
-# Laravel
-.env.*.php
-.env.php
-.env
+vendor
+www/modules/contrib

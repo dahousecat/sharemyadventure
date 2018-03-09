@@ -1,0 +1,58 @@
+{
+    "name": "dahousecat/sharemyadventure",
+    "description": "Share your adventure",
+    "type": "project",
+    "require": {
+        "cweagans/composer-patches": "^1.6.0",
+        "drupal/admin_toolbar": "^1.23",
+        "drupal/console": "~1.0",
+        "drupal/core": "^8.5",
+        "drupal/gpx_track_elevation": "^1.0@alpha",
+        "drush/drush": "~8.0|^9.0.0-beta8",
+        "hussainweb/drupal-composer-helper": "^1.0"
+    },
+    "require-dev": {
+        "behat/mink": "~1.7",
+        "behat/mink-goutte-driver": "~1.2",
+        "jcalderonzumba/gastonjs": "~1.0.2",
+        "jcalderonzumba/mink-phantomjs-driver": "~0.3.1",
+        "mikey179/vfsstream": "~1.2",
+        "phpunit/phpunit": ">=4.8.28 <5",
+        "symfony/css-selector": "~2.8"
+    },
+    "authors": [
+        {
+            "name": "Felix Eve",
+            "email": "dahousecat@gmail.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://packages.drupal.org/8"
+        }
+    ],
+    "minimum-stability": "dev",
+    "extra": {
+        "drupal-composer-helper": {
+            "web-prefix": "www"
+        },
+        "enable-patching": true,
+        "installer-paths": {
+            "www/core": ["type:drupal-core"],
+            "www/libraries/{$name}": ["type:drupal-library"],
+            "www/modules/contrib/{$name}": ["type:drupal-module"],
+            "www/profiles/contrib/{$name}": ["type:drupal-profile"],
+            "www/themes/contrib/{$name}": ["type:drupal-theme"],
+            "drush/contrib/{$name}": ["type:drupal-drush"]
+        }
+    },
+    "prefer-stable": true,
+    "conflict": {
+        "drupal/drupal": "*"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    }
+}
