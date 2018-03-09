@@ -1,0 +1,38 @@
+add adventure entities:
+  title: 'Create new Adventure entities'
+
+administer adventure entities:
+  title: 'Administer Adventure entities'
+  description: 'Allow to access the administration form to configure Adventure entities.'
+  restrict access: true
+
+delete adventure entities:
+  title: 'Delete Adventure entities'
+
+edit adventure entities:
+  title: 'Edit Adventure entities'
+
+view published adventure entities:
+  title: 'View published Adventure entities'
+
+view unpublished adventure entities:
+  title: 'View unpublished Adventure entities'
+add day entities:
+  title: 'Create new Day entities'
+
+administer day entities:
+  title: 'Administer Day entities'
+  description: 'Allow to access the administration form to configure Day entities.'
+  restrict access: true
+
+delete day entities:
+  title: 'Delete Day entities'
+
+edit day entities:
+  title: 'Edit Day entities'
+
+view published day entities:
+  title: 'View published Day entities'
+
+view unpublished day entities:
+  title: 'View unpublished Day entities'

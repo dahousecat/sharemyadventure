@@ -1,0 +1,10 @@
+entity.adventure.add_form:
+  route_name: entity.adventure.add_form
+  title: 'Add Adventure'
+  appears_on:
+    - entity.adventure.collection
+entity.day.add_form:
+  route_name: entity.day.add_form
+  title: 'Add Day'
+  appears_on:
+    - entity.day.collection

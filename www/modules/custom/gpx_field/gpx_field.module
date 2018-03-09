@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains gpx_field.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function gpx_field_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the gpx_field module.
+    case 'help.page.gpx_field':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Create a field type for gpx[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dstoring gpx data') . '</p>';
+      return $output;
+
+    default:
+  }
+}

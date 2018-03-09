@@ -1,0 +1,5 @@
+name: 'sma'
+type: module
+description: 'Share My Adventure'
+core: 8.x
+package: 'Custom'

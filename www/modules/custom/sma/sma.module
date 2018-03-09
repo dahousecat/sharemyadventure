@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains sma.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function sma_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the sma module.
+    case 'help.page.sma':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Share My Adventure') . '</p>';
+      return $output;
+
+    default:
+  }
+}

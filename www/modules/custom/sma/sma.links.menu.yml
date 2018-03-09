@@ -1,0 +1,28 @@
+
+# Adventure menu items definition
+entity.adventure.collection:
+  title: 'Adventure list'
+  route_name: entity.adventure.collection
+  description: 'List Adventure entities'
+  parent: system.admin_structure
+  weight: 100
+
+adventure.admin.structure.settings:
+  title: 'Adventure settings'
+  description: 'Configure Adventure entities'
+  route_name: adventure.settings
+  parent: system.admin_structure
+
+# Day menu items definition
+entity.day.collection:
+  title: 'Day list'
+  route_name: entity.day.collection
+  description: 'List Day entities'
+  parent: system.admin_structure
+  weight: 100
+
+day.admin.structure.settings:
+  title: 'Day settings'
+  description: 'Configure Day entities'
+  route_name: day.settings
+  parent: system.admin_structure
