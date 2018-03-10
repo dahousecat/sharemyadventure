@@ -128,7 +128,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
     // Most widgets need their internal structure preserved in submitted values.
     $elements += ['#tree' => TRUE];
 
-    return [
+    $element = [
       // Aid in theming of widgets by rendering a classified container.
       '#type' => 'container',
       // Assign a different parent, to keep the main id for the widget itself.
@@ -142,6 +142,16 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
       ],
       'widget' => $elements,
     ];
+
+    // Allow module to alter the field widget form element.
+    $context = [
+      'form' => $form,
+      'widget' => $this,
+      'items' => $items,
+    ];
+    \Drupal::moduleHandler()->alter(['field_widget_form_container', 'field_widget_' . $this->getPluginId() . '_form_container'], $element, $form_state, $context);
+
+    return $element;
   }
 
   /**
@@ -423,21 +433,26 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
       if (Element::isVisibleElement($element)) {
         $handles_multiple = $this->handlesMultipleValues();
 
-        $violations_by_delta = [];
+        $violations_by_delta = $item_list_violations = [];
         foreach ($violations as $violation) {
           // Separate violations by delta.
           $property_path = explode('.', $violation->getPropertyPath());
           $delta = array_shift($property_path);
-          $violations_by_delta[$delta][] = $violation;
+          if (is_numeric($delta)) {
+            $violations_by_delta[$delta][] = $violation;
+          }
+          // Violations at the ItemList level are not associated to any delta.
+          else {
+            $item_list_violations[] = $violation;
+          }
           $violation->arrayPropertyPath = $property_path;
         }
 
         /** @var \Symfony\Component\Validator\ConstraintViolationInterface[] $delta_violations */
         foreach ($violations_by_delta as $delta => $delta_violations) {
-          // Pass violations to the main element:
-          // - if this is a multiple-value widget,
-          // - or if the violations are at the ItemList level.
-          if ($handles_multiple || !is_numeric($delta)) {
+          // Pass violations to the main element if this is a multiple-value
+          // widget.
+          if ($handles_multiple) {
             $delta_element = $element;
           }
           // Otherwise, pass errors by delta to the corresponding sub-element.
@@ -452,6 +467,13 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
               $form_state->setError($error_element, $violation->getMessage());
             }
           }
+        }
+
+        /** @var \Symfony\Component\Validator\ConstraintViolationInterface[] $item_list_violations */
+        // Pass violations to the main element without going through
+        // errorElement() if the violations are at the ItemList level.
+        foreach ($item_list_violations as $violation) {
+          $form_state->setError($element, $violation->getMessage());
         }
       }
     }

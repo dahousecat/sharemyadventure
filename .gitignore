@@ -38,3 +38,4 @@ Desktop.ini
 vendor
 www/modules/contrib
 www/sites/default/files
+www/sites/default/files/*

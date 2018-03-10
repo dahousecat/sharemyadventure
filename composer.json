@@ -7,7 +7,10 @@
         "drupal/admin_toolbar": "^1.23",
         "drupal/console": "~1.0",
         "drupal/core": "^8.5",
+        "drupal/devel": "^1.2",
+        "drupal/devel_debug_log": "^1.0@beta",
         "drupal/gpx_track_elevation": "^1.0@alpha",
+        "drupal/kint": "^1.2",
         "drush/drush": "~8.0|^9.0.0-beta8",
         "hussainweb/drupal-composer-helper": "^1.0"
     },
@@ -45,6 +48,11 @@
             "www/profiles/contrib/{$name}": ["type:drupal-profile"],
             "www/themes/contrib/{$name}": ["type:drupal-theme"],
             "drush/contrib/{$name}": ["type:drupal-drush"]
+        },
+        "patches": {
+            "drupal/core": {
+                "Create hook_field_widget_form_container_alter": "https://www.drupal.org/files/issues/2872162-field-widget-hook-3.patch"
+            }
         }
     },
     "prefer-stable": true,

@@ -1,5 +1,5 @@
 name: 'gpx_field'
 type: module
-description: 'Create a field type for gpx[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dstoring gpx data'
+description: 'Create a field type for storing gpx data'
 core: 8.x
 package: 'Custom'

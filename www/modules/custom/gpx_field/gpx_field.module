@@ -7,6 +7,12 @@
 
 use Drupal\Core\Routing\RouteMatchInterface;
 
+// Include hooks
+foreach (glob(__DIR__ . '/hooks/*.inc') as $file) {
+    /** @noinspection PhpIncludeInspection */
+    require_once $file;
+}
+
 /**
  * Implements hook_help().
  */
@@ -16,7 +22,7 @@ function gpx_field_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.gpx_field':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('Create a field type for gpx[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dstoring gpx data') . '</p>';
+      $output .= '<p>' . t('Create a field type for storing gpx data') . '</p>';
       return $output;
 
     default:

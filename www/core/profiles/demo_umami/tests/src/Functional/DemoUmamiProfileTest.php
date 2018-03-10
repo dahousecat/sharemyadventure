@@ -140,60 +140,27 @@ class DemoUmamiProfileTest extends BrowserTestBase {
     // Check when editing a node, the warning is visible.
     $this->drupalGet($recipe_node->toUrl('edit-form'));
     $web_assert->statusCodeEquals('200');
-    $web_assert->pageTextContains('This installation is for demonstration purposes only.');
+    $web_assert->pageTextContains('This site is intended for demonstration purposes.');
 
     // Check when adding a node, the warning is visible.
     $this->drupalGet('node/add/recipe');
     $web_assert->statusCodeEquals('200');
-    $web_assert->pageTextContains('This installation is for demonstration purposes only.');
+    $web_assert->pageTextContains('This site is intended for demonstration purposes.');
 
     // Check when looking at admin/content, the warning is visible.
     $this->drupalGet('admin/content');
     $web_assert->statusCodeEquals('200');
-    $web_assert->pageTextContains('This installation is for demonstration purposes only.');
+    $web_assert->pageTextContains('This site is intended for demonstration purposes.');
 
     // Check when viewing a node, the warning is not visible.
     $this->drupalGet($recipe_node->toUrl());
     $web_assert->statusCodeEquals('200');
-    $web_assert->pageTextNotContains('This installation is for demonstration purposes only.');
+    $web_assert->pageTextNotContains('This site is intended for demonstration purposes.');
 
     // Check when viewing the homepage, the warning is not visible.
     $this->drupalGet('<front>');
     $web_assert->statusCodeEquals('200');
-    $web_assert->pageTextNotContains('This installation is for demonstration purposes only.');
-  }
-
-  /**
-   * Tests that sample images are not accessible to the webserver.
-   */
-  public function testAccessDeniedToSampleImages() {
-    $file_name = 'chocolate-brownie-umami.jpg';
-    $file_path = '/' . drupal_get_path('module', 'demo_umami_content') . '/default_content/images/' . $file_name;
-    $this->assertTrue(file_exists(DRUPAL_ROOT . $file_path));
-    $this->drupalGet($file_path);
-    $this->assertSession()->statusCodeEquals(403);
-  }
-
-  /**
-   * Tests that sample recipes are not accessible to the webserver.
-   */
-  public function testAccessDeniedToSampleRecipes() {
-    $file_name = 'chocolate-brownie-umami.html';
-    $file_path = '/' . drupal_get_path('module', 'demo_umami_content') . '/default_content/recipe_instructions/' . $file_name;
-    $this->assertTrue(file_exists(DRUPAL_ROOT . $file_path));
-    $this->drupalGet($file_path);
-    $this->assertSession()->statusCodeEquals(403);
-  }
-
-  /**
-   * Tests that sample articles are not accessible to the webserver.
-   */
-  public function testAccessDeniedToSampleArticles() {
-    $file_name = 'lets-hear-it-for-carrots.html';
-    $file_path = '/' . drupal_get_path('module', 'demo_umami_content') . '/default_content/article_body/' . $file_name;
-    $this->assertTrue(file_exists(DRUPAL_ROOT . $file_path));
-    $this->drupalGet($file_path);
-    $this->assertSession()->statusCodeEquals(403);
+    $web_assert->pageTextNotContains('This site is intended for demonstration purposes.');
   }
 
 }
