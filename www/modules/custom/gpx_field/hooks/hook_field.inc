@@ -13,7 +13,7 @@ function gpx_field_field_widget_form_container_alter(&$element, \Drupal\Core\For
 
     $field_definition = $context['items']->getFieldDefinition();
 
-    if ($field_definition->getType() == 'gpx' && 0) {
+    if ($field_definition->getType() == 'gpx') {
 
         $element['#type'] = 'fieldset';
         //$element['#tree'] = TRUE;
@@ -43,6 +43,13 @@ function gpx_field_field_widget_form_container_alter(&$element, \Drupal\Core\For
         ];
 
         $element['widget']['#weight'] = 2;
+
+        static $static;
+        if(!isset($static)) {
+            $static = true;
+//            dpm($element['widget'], '$element');
+        }
+
 
     }
 

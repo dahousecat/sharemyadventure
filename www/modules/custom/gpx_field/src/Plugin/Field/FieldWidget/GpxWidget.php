@@ -89,8 +89,6 @@ class GpxWidget extends WidgetBase {
     public static function validate($element, FormStateInterface $form_state) {
         $value = $element['#value'];
 
-        dpm($element, '$element');
-
 //        ddl($element, '$element');
 //        dpm($form_state, '$form_state');
 
@@ -129,61 +127,92 @@ class GpxWidget extends WidgetBase {
      */
     public function massageFormValues(array $values, array $form, FormStateInterface $form_state) {
 
-
-        foreach ($values as &$item) {
-
-            dpm($item, '$item');
-
-            // @todo The structure is different whether access is denied or not, to
-            //   be fixed in https://www.drupal.org/node/2326533.
-            if (isset($item['time']) && $item['time'] instanceof DrupalDateTime) {
-                $date = $item['time'];
-            }
-            elseif (isset($item['time']['object']) && $item['time']['object'] instanceof DrupalDateTime) {
-                $date = $item['time']['object'];
-            }
-            else {
-                $date = new DrupalDateTime();
-            }
-            $item['time'] = $date->getTimestamp();
+        // Get action and load gpx data from file
+        $action = $form_state->getValue('gpx_field_action');
+        $gpx_value = $form_state->getValue('gpx_field_gpx');
+        $fid = isset($gpx_value[0]) ? $gpx_value[0] : NULL;
+        $file = $fid ? \Drupal::entityTypeManager()->getStorage('file')->load($fid) : NULL;
+        $gpx_data = [];
+        if($file) {
+            $uri = $file->getFileUri();
+            $xml = file_get_contents($uri);
+            $gpx = simplexml_load_string($xml);
+            $gpx_data = json_decode(json_encode($gpx));
+            $gpx_data = $gpx_data->trk->trkseg->trkpt;
         }
 
-        return $values;
+        $delta = 0;
+        $new_values = [];
 
-//        $action = $form_state->getValue('gpx_field_action');
-//        $fid = $form_state->getValue('gpx_field_gpx')[0];
-//        $file = \Drupal::entityTypeManager()->getStorage('file')->load($fid);
-//        $uri = $file->getFileUri();
-//        $xml = file_get_contents($uri);
-//        $gpx = simplexml_load_string($xml);
-//
-//        $gpx_data = json_decode(json_encode($gpx));
-//
-//        $test = [];
-//
-//        if($action == 'replace') {
-//
-//        }
-//
-//        foreach($gpx_data->trk->trkseg->trkpt as $item) {
-//            $test[] = [
-//                'lat' => $item->{'@attributes'}->lat,
-//                'lng' => $item->{'@attributes'}->lon,
-//                'ele' => $item->ele,
-//                'time' => $item->time,
-//            ];
-//        }
-//
-//        dpm($test, '$test');
+        // If action is replace delete all existing data
+        if($action == 'append') {
+            // Loop form field values to convert date to timestamp
+            foreach ($values as $item) {
 
-        dpm($values, '$values');
-        static $static;
-        if(!isset($static)) {
-            $static = true;
-            //dpm($form_state, '$form_state');
+                // @todo The structure is different whether access is denied or not, to
+                //   be fixed in https://www.drupal.org/node/2326533.
+                if (isset($item['time']) && $item['time'] instanceof DrupalDateTime) {
+                    $date = $item['time'];
+                }
+                elseif (isset($item['time']['object']) && $item['time']['object'] instanceof DrupalDateTime) {
+                    $date = $item['time']['object'];
+                }
+                else {
+                    $date = new DrupalDateTime();
+                }
+                $item['time'] = $date->getTimestamp();
+
+                $new_values[$item['time']] = $item;
+
+                $delta++;
+            }
         }
 
-        return $values;
+        // Loop GPX data to add to values array
+        foreach($gpx_data as $gpx_item) {
+
+            $timestamp = strtotime($gpx_item->time);
+
+            $this_item = [
+                'lat' => $gpx_item->{'@attributes'}->lat,
+                'lng' => $gpx_item->{'@attributes'}->lon,
+                'ele' => $gpx_item->ele,
+                'time' => $timestamp,
+//                '_WEIGHT' => $delta,
+//                '_ORIGINAL_DELTA' => $delta,
+            ];
+
+            $new_values[$timestamp] = $this_item;
+
+            $delta++;
+        }
+
+        // Finally ensure all data is sorted according to the timestamps
+//        usort($values, function($a, $b) {
+//            return $a['time'] <=> $b['time'];
+//        });
+
+        ksort($new_values);
+
+        dpm($new_values, '$new_values');
+
+        return $new_values;
+
+    }
+
+    /**
+     * Check if there is an item with a specific timestamp in the values array passed in
+     *
+     * @param $timestamp
+     * @param $values
+     * @return int|string
+     */
+    private function checkForTimestamp($timestamp, $values) {
+        foreach($values as $k => $value) {
+            if($value['time'] == $timestamp) {
+                return $k;
+            }
+        }
     }
 
 }

@@ -15,7 +15,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |node_config|
   node_config.vm.provider :virtualbox do |vb|
     vb.customize [
       "modifyvm", :id,
-      "--name", "vuug.in.monkii.com",
+      "--name", "sma.in.monkii.com",
       "--natdnshostresolver1", "on",
       "--memory", "2048"
     ]
