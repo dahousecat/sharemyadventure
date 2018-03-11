@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "b6dbc88b85f647b54fb27ab9932f9413",
+    "content-hash": "515feefed0ef3efe42f650ad709c7d26",
     "packages": [
         {
             "name": "alchemy/zippy",
@@ -1884,7 +1884,8 @@
                     "merge-extra": false
                 },
                 "patches_applied": {
-                    "Create hook_field_widget_form_container_alter": "https://www.drupal.org/files/issues/2872162-field-widget-hook-3.patch"
+                    "Create hook_field_widget_form_container_alter": "https://www.drupal.org/files/issues/2872162-field-widget-hook-3.patch",
+                    "Create toggle to disable reordering of multicardinality fields": "https://www.drupal.org/files/issues/2018-03-11/reordering_multivalued_fields_toggle-2175695-8.patch"
                 }
             },
             "autoload": {
