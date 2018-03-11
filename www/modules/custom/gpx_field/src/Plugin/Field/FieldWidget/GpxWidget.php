@@ -178,8 +178,6 @@ class GpxWidget extends WidgetBase {
                 'lng' => $gpx_item->{'@attributes'}->lon,
                 'ele' => $gpx_item->ele,
                 'time' => $timestamp,
-//                '_WEIGHT' => $delta,
-//                '_ORIGINAL_DELTA' => $delta,
             ];
 
             $new_values[$timestamp] = $this_item;
@@ -188,13 +186,7 @@ class GpxWidget extends WidgetBase {
         }
 
         // Finally ensure all data is sorted according to the timestamps
-//        usort($values, function($a, $b) {
-//            return $a['time'] <=> $b['time'];
-//        });
-
         ksort($new_values);
-
-        dpm($new_values, '$new_values');
 
         return $new_values;
 
