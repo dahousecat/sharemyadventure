@@ -17,7 +17,7 @@ use Drupal\Core\TypedData\DataDefinition;
  *   label = @Translation("Gpx"),
  *   description = @Translation("Store lat, lng, elevation and timestamp from a GPX file in the DB."),
  *   default_widget = "gpx_default",
- *   default_formatter = "gpx",
+ *   default_formatter = "gpx_table",
  * )
  */
 class GpxItem extends FieldItemBase {

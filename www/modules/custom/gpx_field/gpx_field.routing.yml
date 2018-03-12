@@ -1,0 +1,7 @@
+gpx_field.configuration:
+  path: '/admin/config/content/gpx-field'
+  defaults:
+    _form: 'Drupal\gpx_field\Form\ConfigurationForm'
+    _title: 'GPX field settings'
+  requirements:
+    _permission: 'administer site configuration'

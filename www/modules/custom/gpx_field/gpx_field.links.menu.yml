@@ -1,0 +1,6 @@
+gpx_field.configuration:
+  title: 'GPX Field'
+  description: 'Configuration for the GPX Field module.'
+  route_name: gpx_field.configuration
+  parent: system.admin_config_content
+  

@@ -15,14 +15,14 @@ use Drupal\Core\Datetime\DrupalDateTime;
  * Plugin implementation of the 'gpx' formatter.
  *
  * @FieldFormatter(
- *   id = "gpx",
- *   label = @Translation("Gpx"),
+ *   id = "gpx_table",
+ *   label = @Translation("Table"),
  *   field_types = {
  *     "gpx"
  *   }
  * )
  */
-class GpxFormatter extends FormatterBase implements ContainerFactoryPluginInterface {
+class GpxTableFormatter extends FormatterBase implements ContainerFactoryPluginInterface {
 
     /**
      * The path validator service.
@@ -120,6 +120,5 @@ class GpxFormatter extends FormatterBase implements ContainerFactoryPluginInterf
 
         return $element;
     }
-
 
 }

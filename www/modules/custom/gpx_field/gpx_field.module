@@ -28,3 +28,13 @@ function gpx_field_help($route_name, RouteMatchInterface $route_match) {
     default:
   }
 }
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function gpx_field_preprocess_page(&$variables) {
+
+  // Uncomment to add route name to every page
+//  drupal_set_message(\Drupal::routeMatch()->getRouteName());
+
+}

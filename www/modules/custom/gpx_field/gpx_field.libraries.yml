@@ -1,0 +1,19 @@
+gpx_field.gpx_field:
+  version: 1.x
+  js:
+    js/gpx_field.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupalSettings
+    - core/jquery.once
+    - core/drupal
+    
+gpx_field.jsapi:
+  version: 1.x
+  js:
+    https://www.google.com/jsapi: { type: external }
+
+gpx_field.charts:
+  version: 1.x
+  js:
+    https://www.gstatic.com/charts/loader.js: { type: external }

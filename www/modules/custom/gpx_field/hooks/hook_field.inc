@@ -16,9 +16,9 @@ function gpx_field_field_widget_form_container_alter(&$element, \Drupal\Core\For
     if ($field_definition->getType() == 'gpx') {
 
         $element['#type'] = 'fieldset';
-        //$element['#tree'] = TRUE;
         $element['#title'] = $element['widget']['#title'];
         $element['widget']['#title'] = t('Track parts');
+        $element['widget']['#access'] = FALSE;
 
         $element['gpx_field_gpx'] = [
             '#type' => 'managed_file',
@@ -43,13 +43,6 @@ function gpx_field_field_widget_form_container_alter(&$element, \Drupal\Core\For
         ];
 
         $element['widget']['#weight'] = 2;
-
-        static $static;
-        if(!isset($static)) {
-            $static = true;
-//            dpm($element['widget'], '$element');
-        }
-
 
     }
 
