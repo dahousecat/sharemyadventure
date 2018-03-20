@@ -1,0 +1,12 @@
+.gpx-field-container {
+    display: flex;
+}
+
+.gpx-field-info-pane {
+    flex: 0 0 20%;
+    margin-right: 1rem;
+}
+
+.gpx-field-inner {
+    flex-grow: 1;
+}

@@ -83,6 +83,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
         'trstroke' => 2,
         'maptype' => 'TERRAIN',
         'showelechart' => TRUE,
+        'animatetrack' => TRUE,
       ) + parent::defaultSettings();
   }
 
@@ -137,6 +138,13 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       '#description' => t('Should the elevation chart be displayed?.'),
     );
 
+    $elements['animatetrack'] = array(
+      '#type' => 'checkbox',
+      '#default_value' => $this->getSetting('animatetrack'),
+      '#title' => t('Animate track'),
+      '#description' => t('Use a slider to animate moving along the track'),
+    );
+
     return $elements;
   }
 
@@ -149,7 +157,8 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     $summary[] = t('Elevation profile color: @epcolor', ['@epcolor' => $this->getSetting('epcolor')]);
     $summary[] = t('Track stroke: @trstroke', ['@trstroke' => $this->getSetting('trstroke')]);
     $summary[] = t('Map Type: @maptype', ['@maptype' => $this->getSetting('maptype')]);
-    $summary[] = t('Elevation chart: @showelechart', ['@showelechart' => $this->getSetting('showelechart') ? 'Yes' : 'No']);
+    $summary[] = t('Elevation chart: @showelechart', ['@showelechart' => $this->getSetting('showelechart') ? 'Shown' : 'Hidden']);
+    $summary[] = t('Animate track: @animatetrack', ['@animatetrack' => $this->getSetting('animatetrack') ? 'Yes' : 'No']);
     return $summary;
   }
 
@@ -162,29 +171,46 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
 
     $config = \Drupal::config('gpx_field.settings');
 
-    $element = array(
-      'gpx-field-container' => array(
+    $element = [
+      'gpx-field-container' => [
         '#type' => 'container',
-        '#attributes' => array(
-          'class' => array('gpx-field-container'),
-        ),
-        'map-canvas' => array(
-          '#type' => 'container',
-          '#attributes' => array(
-            'class' => array('map-canvas'),
-            'id' => 'map-canvas-' . $field_name,
-            'style' => 'height: 20rem',
-          ),
-        ),
-        'elevation-canvas' => array(
-          '#type' => 'container',
-          '#attributes' => array(
-            'class' => array('elevation-chart'),
-            'id' => 'elevation-chart-' . $field_name,
-          ),
-        ),
-      ),
-    );
+        '#attributes' => [
+          'class' => ['gpx-field-container'],
+        ],
+      ],
+    ];
+
+    $element['gpx-field-container']['info-pane'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['gpx-field-info-pane'],
+        'id' => 'info-pane-' . $field_name,
+      ],
+    ];
+
+    $element['gpx-field-container']['inner'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['gpx-field-inner'],
+      ],
+    ];
+
+    $element['gpx-field-container']['inner']['map-canvas'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['map-canvas'],
+        'id' => 'map-canvas-' . $field_name,
+        'style' => 'height: 20rem',
+      ],
+    ];
+
+    $element['gpx-field-container']['inner']['elevation-canvas'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['elevation-chart'],
+        'id' => 'elevation-chart-' . $field_name,
+      ],
+    ];
 
     $data = [];
 
@@ -229,6 +255,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
               'trStroke' => $this->getSetting('trstroke'),
               'mapType' => $this->getSetting('maptype'),
               'showelechart' => $this->getSetting('showelechart'),
+              'animatetrack' => $this->getSetting('animatetrack'),
               'data' => $data,
               'map_centre' => [
                 'lat' => $lat_total / $count,

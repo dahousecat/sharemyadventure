@@ -1,13 +1,17 @@
 gpx_field.gpx_field:
   version: 1.x
   js:
-    js/gpx_field.js: {}
+    js/gpx-field.js: {}
+  css:
+    theme:
+      css/gpx-field.css: {}
   dependencies:
     - core/jquery
+    - core/jquery.ui.slider
     - core/drupalSettings
     - core/jquery.once
     - core/drupal
-    
+
 gpx_field.jsapi:
   version: 1.x
   js:

@@ -1,0 +1,373 @@
+Index: www/core/includes/theme.inc
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/includes/theme.inc	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/includes/theme.inc	(date 1520737141282)
+@@ -1592,6 +1592,8 @@
+   $element = $variables['element'];
+   $variables['multiple'] = $element['#cardinality_multiple'];
+ 
++  $element['#reorderable'] = FALSE;
++
+   if ($variables['multiple']) {
+     $table_id = Html::getUniqueId($element['#field_name'] . '_values');
+     $order_class = $element['#field_name'] . '-delta-order';
+@@ -1610,8 +1612,12 @@
+         'colspan' => 2,
+         'class' => ['field-label'],
+       ],
+-      t('Order', [], ['context' => 'Sort order']),
+     ];
++
++    if($element['#reorderable']) {
++      $header[] = t('Order', [], ['context' => 'Sort order']);
++    }
++
+     $rows = [];
+ 
+     // Sort items according to '_weight' (needed when the form comes back after
+@@ -1637,15 +1643,22 @@
+       $delta_element = $item['_weight'];
+       unset($item['_weight']);
+ 
+-      $cells = [
+-        ['data' => '', 'class' => ['field-multiple-drag']],
+-        ['data' => $item],
+-        ['data' => $delta_element, 'class' => ['delta-order']],
+-      ];
+-      $rows[] = [
+-        'data' => $cells,
+-        'class' => ['draggable'],
+-      ];
++      if($element['#reorderable']) {
++        $cells = [
++          ['data' => '', 'class' => ['field-multiple-drag']],
++          ['data' => $item],
++          ['data' => $delta_element, 'class' => ['delta-order']],
++        ];
++        $rows[] = [
++          'data' => $cells,
++          'class' => ['draggable'],
++        ];
++      }
++      else {
++        $cells = [['data' => $item]];
++        $rows[] = ['data' => $cells];
++      }
++
+     }
+ 
+     $variables['table'] = [
+@@ -1656,14 +1669,17 @@
+         'id' => $table_id,
+         'class' => ['field-multiple-table'],
+       ],
+-      '#tabledrag' => [
++    ];
++
++    if($element['#reorderable']) {
++      $variables['table']['#tabledrag'] = [
+         [
+           'action' => 'order',
+           'relationship' => 'sibling',
+           'group' => $order_class,
+         ],
+-      ],
+-    ];
++      ];
++    }
+ 
+     if (!empty($element['#description'])) {
+       $description_id = $element['#attributes']['aria-describedby'];
+Index: www/core/lib/Drupal/Core/Entity/Display/EntityFormDisplayInterface.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/lib/Drupal/Core/Entity/Display/EntityFormDisplayInterface.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/lib/Drupal/Core/Entity/Display/EntityFormDisplayInterface.php	(date 1520735209508)
+@@ -55,7 +55,8 @@
+    *       // For 'single-value' widgets:
+    *       '#theme' => 'field_multiple_value_form',
+    *       '#cardinality' => The field cardinality,
+-   *       '#cardinality_multiple' => TRUE if the field can contain multiple
++   *       '#cardinality_multiple' => TRUE if the field can contain multiple,
++   *       '#reorderable' => TRUE if the field can be reordered
+    *         items, FALSE otherwise.
+    *       // One sub-array per copy of the widget, keyed by delta.
+    *       0 => array(
+Index: www/core/lib/Drupal/Core/Field/BaseFieldDefinition.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/lib/Drupal/Core/Field/BaseFieldDefinition.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/lib/Drupal/Core/Field/BaseFieldDefinition.php	(date 1520727275276)
+@@ -273,6 +273,21 @@
+     return $this;
+   }
+ 
++  public function isReorderable() {
++    return isset($this->definition['reorderable']) ? $this->definition['reorderable'] : 1;
++  }
++
++  /**
++   * Set if items in this field can be reordered.
++   *
++   * @param $reorderable
++   * @return $this
++   */
++  public function setReorderable($reorderable) {
++    $this->definition['reorderable'] = $reorderable;
++    return $this;
++  }
++
+   /**
+    * {@inheritdoc}
+    */
+Index: www/core/lib/Drupal/Core/Field/FieldStorageDefinitionInterface.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/lib/Drupal/Core/Field/FieldStorageDefinitionInterface.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/lib/Drupal/Core/Field/FieldStorageDefinitionInterface.php	(date 1520726614485)
+@@ -170,6 +170,14 @@
+    */
+   public function getCardinality();
+ 
++  /**
++   * Returns the if the field can be reordered.
++   *
++   * @return bool
++   *   If the field is reorderable.
++   */
++  public function isReorderable();
++
+   /**
+    * Gets the definition of a contained property.
+    *
+Index: www/core/lib/Drupal/Core/Field/WidgetBase.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/lib/Drupal/Core/Field/WidgetBase.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/lib/Drupal/Core/Field/WidgetBase.php	(date 1520735701523)
+@@ -165,6 +165,7 @@
+   protected function formMultipleElements(FieldItemListInterface $items, array &$form, FormStateInterface $form_state) {
+     $field_name = $this->fieldDefinition->getName();
+     $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
++    $reorderable = !!$this->fieldDefinition->getFieldStorageDefinition()->isReorderable();
+     $parents = $form['#parents'];
+ 
+     // Determine the number of widgets to display.
+@@ -237,6 +238,7 @@
+         '#field_name' => $field_name,
+         '#cardinality' => $cardinality,
+         '#cardinality_multiple' => $this->fieldDefinition->getFieldStorageDefinition()->isMultiple(),
++        '#reorderable' => $reorderable,
+         '#required' => $this->fieldDefinition->isRequired(),
+         '#title' => $title,
+         '#description' => $description,
+Index: www/core/modules/field/src/Entity/FieldStorageConfig.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/modules/field/src/Entity/FieldStorageConfig.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/modules/field/src/Entity/FieldStorageConfig.php	(date 1520734494228)
+@@ -36,6 +36,7 @@
+  *     "module",
+  *     "locked",
+  *     "cardinality",
++ *     "reorderable",
+  *     "translatable",
+  *     "indexes",
+  *     "persist_with_no_fields",
+@@ -120,6 +121,15 @@
+    */
+   protected $cardinality = 1;
+ 
++  /**
++   * Flag indicating whether the field is reorderable when multicardinality.
++   *
++   * Defaults to TRUE.
++   *
++   * @var bool
++   */
++  protected $reorderable = TRUE;
++
+   /**
+    * Flag indicating whether the field is translatable.
+    *
+@@ -650,6 +660,21 @@
+     $this->cardinality = $cardinality;
+     return $this;
+   }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function isReorderable() {
++    return $this->reorderable;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function setReorderable($reorderable) {
++    $this->reorderable = $reorderable;
++    return $this;
++  }
+ 
+   /**
+    * {@inheritdoc}
+Index: www/core/modules/field/src/FieldStorageConfigInterface.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/modules/field/src/FieldStorageConfigInterface.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/modules/field/src/FieldStorageConfigInterface.php	(date 1520731793432)
+@@ -70,6 +70,16 @@
+    */
+   public function setCardinality($cardinality);
+ 
++  /**
++   * Sets if the field can be reordered.
++   *
++   * @param bool $reorderable
++   *   The reorderable value.
++   *
++   * @return $this
++   */
++  public function setReorderable($reorderable);
++
+   /**
+    * Sets the value for a field setting by name.
+    *
+Index: www/core/modules/field_ui/src/Form/FieldStorageConfigEditForm.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/modules/field_ui/src/Form/FieldStorageConfigEditForm.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/modules/field_ui/src/Form/FieldStorageConfigEditForm.php	(date 1520736438434)
+@@ -108,6 +108,9 @@
+       // Reset #parents so the additional container does not appear.
+       '#parents' => [],
+       '#type' => 'fieldset',
++    ];
++    $form['cardinality_wrapper'] = [
++      '#type' => 'fieldset',
+       '#title' => $this->t('Allowed number of values'),
+       '#attributes' => [
+         'class' => [
+@@ -125,12 +128,12 @@
+       else {
+         $markup = $this->t("This field cardinality is set to @cardinality and cannot be configured.", ['@cardinality' => $enforced_cardinality]);
+       }
+-      $form['cardinality'] = ['#markup' => $markup];
++      $form['cardinality_wrapper']['cardinality'] = ['#markup' => $markup];
+     }
+     else {
+-      $form['#element_validate'][] = '::validateCardinality';
++      $form['cardinality_wrapper']['#element_validate'][] = '::validateCardinality';
+       $cardinality = $this->entity->getCardinality();
+-      $form['cardinality'] = [
++      $form['cardinality_wrapper']['cardinality'] = [
+         '#type' => 'select',
+         '#title' => $this->t('Allowed number of values'),
+         '#title_display' => 'invisible',
+@@ -140,7 +143,7 @@
+         ],
+         '#default_value' => ($cardinality == FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) ? FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED : 'number',
+       ];
+-      $form['cardinality_number'] = [
++      $form['cardinality_wrapper']['cardinality_number'] = [
+         '#type' => 'number',
+         '#default_value' => $cardinality != FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED ? $cardinality : 1,
+         '#min' => 1,
+@@ -156,6 +159,11 @@
+           ],
+         ],
+       ];
++      $form['reorderable'] = [
++        '#type' => 'checkbox',
++        '#default_value' => $this->entity->isReorderable(),
++        '#title' => $this->t('Reorderable'),
++      ];
+     }
+ 
+     return $form;
+Index: www/core/modules/file/src/Plugin/Field/FieldWidget/FileWidget.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/modules/file/src/Plugin/Field/FieldWidget/FileWidget.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/modules/file/src/Plugin/Field/FieldWidget/FileWidget.php	(date 1520735716774)
+@@ -100,6 +100,7 @@
+ 
+     // Determine the number of widgets to display.
+     $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
++    $reorderable = !!$this->fieldDefinition->getFieldStorageDefinition()->isReorderable();
+     switch ($cardinality) {
+       case FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED:
+         $max = count($items);
+@@ -195,6 +196,7 @@
+         '#description' => '',
+         '#upload_validators' => $elements[0]['#upload_validators'],
+         '#cardinality' => $cardinality,
++        '#reorderable' => $reorderable,
+       ];
+     }
+ 
+@@ -217,6 +219,7 @@
+     ];
+ 
+     $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
++    $reorderable = !!$this->fieldDefinition->getFieldStorageDefinition()->isReorderable();
+     $defaults = [
+       'fids' => [],
+       'display' => (bool) $field_settings['display_default'],
+@@ -242,6 +245,7 @@
+       '#display_default' => $field_settings['display_default'],
+       '#description_field' => $field_settings['description_field'],
+       '#cardinality' => $cardinality,
++      '#reorderable' => $reorderable,
+     ];
+ 
+     $element['#weight'] = $delta;
+@@ -260,6 +264,7 @@
+         '#description' => $element['#description'],
+         '#upload_validators' => $element['#upload_validators'],
+         '#cardinality' => $cardinality,
++        '#reorderable' => $reorderable,
+       ];
+       $element['#description'] = \Drupal::service('renderer')->renderPlain($file_upload_help);
+       $element['#multiple'] = $cardinality != 1 ? TRUE : FALSE;
+Index: www/core/modules/image/src/Plugin/Field/FieldWidget/ImageWidget.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/core/modules/image/src/Plugin/Field/FieldWidget/ImageWidget.php	(revision 0c303ee91c269904095cb6cc143f5721bc278ebb)
++++ www/core/modules/image/src/Plugin/Field/FieldWidget/ImageWidget.php	(date 1520735725193)
+@@ -117,11 +117,13 @@
+     $elements = parent::formMultipleElements($items, $form, $form_state);
+ 
+     $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
++    $reorderable = !!$this->fieldDefinition->getFieldStorageDefinition()->isReorderable();
+     $file_upload_help = [
+       '#theme' => 'file_upload_help',
+       '#description' => '',
+       '#upload_validators' => $elements[0]['#upload_validators'],
+       '#cardinality' => $cardinality,
++      '#reorderable' => $reorderable,
+     ];
+     if ($cardinality == 1) {
+       // If there's only one field, return it as delta 0.
