@@ -38,3 +38,4 @@ function gpx_field_preprocess_page(&$variables) {
 //  drupal_set_message(\Drupal::routeMatch()->getRouteName());
 
 }
+

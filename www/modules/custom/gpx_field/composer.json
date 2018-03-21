@@ -1,0 +1,14 @@
+{
+    "name": "drupal/gpx_field",
+    "description": "GPX Field",
+    "type": "drupal-module",
+    "require": {
+        "markrogoyski/math-php": "0.*"
+    },
+    "authors": [
+        {
+            "name": "Felix Eve",
+            "email": "dahousecat@gmail.com"
+        }
+    ]
+}

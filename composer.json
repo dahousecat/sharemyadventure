@@ -5,6 +5,7 @@
     "require": {
         "cweagans/composer-patches": "^1.6.0",
         "drupal/admin_toolbar": "^1.23",
+        "drupal/colorbox": "^1.4",
         "drupal/console": "~1.0",
         "drupal/core": "^8.5",
         "drupal/devel": "^1.2",
@@ -13,7 +14,8 @@
         "drupal/kint": "^1.2",
         "drupal/search_kint": "^1.0",
         "drush/drush": "~8.0|^9.0.0-beta8",
-        "hussainweb/drupal-composer-helper": "^1.0"
+        "hussainweb/drupal-composer-helper": "^1.0",
+        "markrogoyski/math-php": "^0.39.0"
     },
     "require-dev": {
         "behat/mink": "~1.7",

@@ -10,6 +10,8 @@ use Drupal\Core\Path\PathValidatorInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\gpx_field\CubicSplines;
+use MathPHP\NumericalAnalysis\Interpolation\NaturalCubicSpline;
 
 /**
  * Plugin implementation of the 'gpx' formatter.
@@ -223,9 +225,9 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       $time = DrupalDateTime::createFromTimestamp($item->time);
 
       $data[] = [
-        'lat' => $item->lat,
-        'lng' => $item->lng,
-        'ele' => $item->ele,
+        'lat'  => $item->lat,
+        'lng'  => $item->lng,
+        'ele'  => $item->ele,
         'time' => $time->format('d/m/Y H:i:s'),
       ];
 
@@ -235,8 +237,11 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
 
     }
 
+    $camera_track_points = $this->createCameraTrack($data);
+
     $init_map_callback = 'Drupal.behaviors.gpx_field.initMap';
     $google_map_url = $config->get('gpx_field.http') . '://maps.googleapis.com/maps/api/js?libraries=geometry&callback=' . $init_map_callback;
+
     if(!empty($config->get('gpx_field.google_map_key'))) {
       $google_map_url .= '&key=' . $config->get('gpx_field.google_map_key') . '&';
     }
@@ -257,6 +262,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
               'showelechart' => $this->getSetting('showelechart'),
               'animatetrack' => $this->getSetting('animatetrack'),
               'data' => $data,
+              'camera_track_points' => $camera_track_points,
               'map_centre' => [
                 'lat' => $lat_total / $count,
                 'lng' => $lng_total / $count,
@@ -272,8 +278,110 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       $element['#attached']['library'][] = 'gpx_field/gpx_field.charts';
     }
 
+    if($this->getSetting('animatetrack')) {
+      $element['#attached']['library'][] = 'gpx_field/smooth';
+    }
+
     return [$element];
 
+  }
+
+  protected function createCameraTrack($data) {
+    $points = $this->createCameraTrackPoints($data);
+
+    $coords = [];
+    foreach($points as $point) {
+      $coords[] = [$point['lat'], $point['lng']];
+    }
+
+    $coords = [[0, 1], [1, 4], [2, 9], [3, 16]];
+
+    $p = NaturalCubicSpline::interpolate($coords);
+
+    dd($coords, '$coords');
+    //dd($p, '$p');
+//
+    dd($p(0), '$p 0');
+//    dd($p(1), '$p 1');
+//    dd($p(2), '$p 2');
+//    dd($p(3), '$p 3');
+//    dd($p(4), '$p 4');
+//    dd($p(5), '$p 5');
+//    dd($p(6), '$p 6');
+
+//
+//    dd($coords, '$coords');
+//
+//    $curve = new CubicSplines();
+//    $curve->setInitCoords($coords);
+//    $aCoords = $curve->processCoords();
+//
+//    dd($aCoords, '$aCoords');
+
+    return $points;
+  }
+
+  protected function createCameraTrackPoints($data) {
+
+    $resolution = 0.1;
+    $gap = round(count($data) * $resolution);
+    $points = [];
+
+    $first = $data[0];
+    $last = $data[count($data) - 1];
+    $distAsCrowFlies = $this->haversineGreatCircleDistance($first['lat'], $first['lng'], $last['lat'], $last['lng']);
+    $distLimit = $distAsCrowFlies / 25;
+
+    for($i = 0; $i < count($data) - 1; $i += $gap) {
+
+      if(isset($point)) {
+        $distance = $this->haversineGreatCircleDistance($point['lat'], $point['lng'], $data[$i]['lat'], $data[$i]['lng']);
+        if($distance < $distLimit) {
+          continue;
+        }
+      }
+
+      $point = [
+        'lat'  => $data[$i]['lat'],
+        'lng'  => $data[$i]['lng'],
+      ];
+
+      $points[] = $point;
+    }
+
+    // make sure last track point is last gps point
+    $points[count($points) - 1] = [
+      'lat' => $last['lat'],
+      'lng' => $last['lng'],
+    ];
+
+    return $points;
+
+  }
+
+  /**
+   * Calculates the great-circle distance between two points, with
+   * the Haversine formula.
+   * @param float $latitudeFrom Latitude of start point in [deg decimal]
+   * @param float $longitudeFrom Longitude of start point in [deg decimal]
+   * @param float $latitudeTo Latitude of target point in [deg decimal]
+   * @param float $longitudeTo Longitude of target point in [deg decimal]
+   * @param float $earthRadius Mean earth radius in [m]
+   * @return float Distance between points in [m] (same as earthRadius)
+   */
+  protected function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371000) {
+    // convert from degrees to radians
+    $latFrom = deg2rad($latitudeFrom);
+    $lonFrom = deg2rad($longitudeFrom);
+    $latTo = deg2rad($latitudeTo);
+    $lonTo = deg2rad($longitudeTo);
+
+    $latDelta = $latTo - $latFrom;
+    $lonDelta = $lonTo - $lonFrom;
+
+    $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+        cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+    return $angle * $earthRadius;
   }
 
 }

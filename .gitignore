@@ -39,4 +39,5 @@ vendor
 www/modules/contrib
 www/sites/default/files
 www/sites/default/files/*
+www/sites/default/files/css/*
 www/core
