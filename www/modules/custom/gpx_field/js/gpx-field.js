@@ -10,8 +10,7 @@
   var maps = {};
   var charts = {};
   var infoPanes = {};
-  var cameraTracks = {};
-  var cameraTrackCoords = {};
+  var sliders = {};
 
   /**
    * Attaches the gpx field behaviour to gpx fields.
@@ -52,7 +51,7 @@
           gpxField.createMap(field_name, fieldSettings);
 
           // Set the bounds and zoom,
-          gpxField.setBounds(maps[field_name], fieldSettings);
+          gpxField.setBounds(field_name, fieldSettings);
 
           if (fieldSettings.animatetrack) {
 
@@ -78,7 +77,7 @@
         if (gpxfSettings.fields.hasOwnProperty(field_name)) {
           var fieldSettings = gpxfSettings.fields[field_name];
           if (fieldSettings.showelechart) {
-            gpxField.drawElevationChart(field_name, fieldSettings);
+            gpxField.createElevationChart(field_name, fieldSettings);
           }
         }
       }
@@ -90,11 +89,20 @@
    * All functions that can live in the local scope of gpx field.
    */
   var gpxField = {
+
+    /**
+     * Create the Google map
+     */
     createMap: function (field_name, fieldSettings) {
+      console.log(fieldSettings, 'fieldSettings');
       maps[field_name] = new google.maps.Map(document.getElementById('map-canvas-' + field_name), {
         mapTypeId: fieldSettings.mapType
       });
     },
+
+    /**
+     * Add a LatLng object and running distance to each node
+     */
     prepareTrackData: function (fieldSettings) {
       var prevLatLng;
       for (var i = 0; i < fieldSettings.data.length; i++) {
@@ -113,13 +121,69 @@
         prevLatLng = latLng;
       }
     },
-    setBounds: function (map, fieldSettings) {
+
+    /**
+     * Set zoom and position based on the track
+     */
+    setBounds: function (field_name, fieldSettings) {
       var bounds = new google.maps.LatLngBounds();
       for (var i = 0; i < fieldSettings.data.length; i++) {
         bounds.extend(fieldSettings.data[i].LatLng);
       }
-      map.fitBounds(bounds);
+
+
+      // If the track is animated zoom in and centre on the start point
+      if(fieldSettings.animatetrack) {
+        gpxField.moveCamera(0, field_name, fieldSettings);
+
+        var $mapDiv = $('#map-canvas-' + field_name);
+        var mapDim = { height: $mapDiv.height(), width: $mapDiv.width() };
+        var zoom = this.getBoundsZoomLevel(bounds, mapDim) + 2;
+
+        maps[field_name].setZoom(zoom);
+
+      }
+      else {
+        maps[field_name].fitBounds(bounds);
+      }
     },
+
+    /**
+     * Get the zoom level for a given Google maps bounds object
+     */
+    getBoundsZoomLevel: function(bounds, mapDim) {
+
+      var WORLD_DIM = { height: 256, width: 256 };
+      var ZOOM_MAX = 21;
+
+      function latRad(lat) {
+        var sin = Math.sin(lat * Math.PI / 180);
+        var radX2 = Math.log((1 + sin) / (1 - sin)) / 2;
+        return Math.max(Math.min(radX2, Math.PI), -Math.PI) / 2;
+      }
+
+      function zoom(mapPx, worldPx, fraction) {
+        return Math.floor(Math.log(mapPx / worldPx / fraction) / Math.LN2);
+      }
+
+      var ne = bounds.getNorthEast();
+      var sw = bounds.getSouthWest();
+
+      var latFraction = (latRad(ne.lat()) - latRad(sw.lat())) / Math.PI;
+
+      var lngDiff = ne.lng() - sw.lng();
+      var lngFraction = ((lngDiff < 0) ? (lngDiff + 360) : lngDiff) / 360;
+
+      var latZoom = zoom(mapDim.height, WORLD_DIM.height, latFraction);
+      var lngZoom = zoom(mapDim.width, WORLD_DIM.width, lngFraction);
+
+      return Math.min(latZoom, lngZoom, ZOOM_MAX);
+
+    },
+
+    /**
+     * Draw the whole track as one line
+     */
     drawSingleTrack: function (map, fieldSettings) {
 
       var coordinates = [];
@@ -139,7 +203,11 @@
       path.setMap(map);
 
     },
-    drawElevationChart: function (field_name, fieldSettings) {
+
+    /**
+     * Build the elevation chart
+     */
+    createElevationChart: function (field_name, fieldSettings) {
 
       var track = fieldSettings.data;
 
@@ -163,6 +231,7 @@
         legend: 'none',
         titleX: 'Time',
         titleY: 'Elevation',
+        chartArea: {'width': '100%', 'height': '80%'},
         hAxis: {showTextEvery: Math.round(track.length / 10)},
       };
 
@@ -170,33 +239,130 @@
       charts[field_name] = new google.visualization.AreaChart(document.getElementById('elevation-chart-' + field_name));
       charts[field_name].draw(data, options);
 
+      google.visualization.events.addListener(charts[field_name], 'select', this.elevationChartSelectHandler.bind(field_name) );
     },
+
+    /**
+     * Selection callback function for graph
+     */
+    elevationChartSelectHandler: function() {
+      var field_name = this;
+      var index = charts[field_name].getSelection()[0].row;
+      var fieldSettings = drupalSettings.gpx_field.fields[field_name];
+      gpxField.setPosition(index, field_name, fieldSettings);
+    },
+
+    /**
+     * Set selection on graph to index passed in
+     */
+    setElevationChartSelection: function(index, field_name) {
+      charts[field_name].setSelection([{'row': index, 'column': 1}]);
+    },
+
+    /**
+     * Create a pane with track info (distance, time, etc)
+     */
     createInfoPane: function (field_name, fieldSettings) {
 
-      infoPanes[field_name] = $('#info-pane-' + field_name);
-      infoPanes[field_name].html('<div class="gpx-field-slider"></div>');
-
+      // Create slider
       var options = {
         min: 0,
-        max: fieldSettings.data.length,
+        max: fieldSettings.data.length - 1,
         slide: this.slide
       };
 
-      infoPanes[field_name].find('.gpx-field-slider').slider(options);
+      sliders[field_name] = $('.gpx-field-scrollbar', '#gpx-field-container-' + field_name);
 
+      sliders[field_name].slider(options);
+
+      infoPanes[field_name] = $('#info-pane-' + field_name);
+
+      infoPanes[field_name].html('<dl>' +
+          '<dt>Distance: </dt><dd class="distance"></dd>' +
+          '<dt>Time: </dt><dd class="time"></dd>' +
+          '<dt>Speed: </dt><dd class="speed"></dd>' +
+          '<dt>Elevation: </dt><dd class="elevation"></dd>' +
+          '</dl>');
+
+      this.updateInfoPane(0, field_name, fieldSettings);
 
     },
+
+    /**
+     * Update the info pane with the latest info
+     */
+    updateInfoPane: function(index, field_name, fieldSettings) {
+
+      var current = fieldSettings.data[index];
+      infoPanes[field_name].find('.distance').html(this.formatDistance(fieldSettings.distance));
+      infoPanes[field_name].find('.time').html(current.time);
+      infoPanes[field_name].find('.elevation').html(current.ele + ' meters');
+      infoPanes[field_name].find('.speed').html(this.movingAvgSpeed(index, field_name, fieldSettings));
+
+    },
+
+    /**
+     * Calculate moving average over a maximum sample size of 10
+     */
+    movingAvgSpeed: function(index, field_name, fieldSettings) {
+
+      var speed = 0;
+      if(typeof(fieldSettings.data[index - 1]) !== 'undefined') {
+        var maxSampleSize = 10;
+        var sampleSize = index - maxSampleSize >= 0 ? maxSampleSize : index;
+
+        var distanceMeters = 0;
+        for(var i = index - sampleSize; i <= index; i++) {
+          distanceMeters += fieldSettings.data[i].distance;
+        }
+        var distanceKms = distanceMeters / 1000;
+
+        var timeSeconds = fieldSettings.data[index].ts - fieldSettings.data[index - sampleSize].ts;
+        var timeHours = timeSeconds / 3600;
+
+        speed = (Math.round(distanceKms / timeHours * 10) / 10) + ' km/h';
+      }
+
+      return speed;
+
+    },
+
+    /**
+     * Format distance in meters or kms
+     */
+    formatDistance: function (meters) {
+      if(meters === 0) {
+        return '0';
+      }
+      if(meters > 100000) {
+        return Math.round(meters / 1000) + ' kms'
+      }
+      if(meters > 1000) {
+        return Math.round(meters / 100) / 10 + ' kms'
+      }
+      return Math.round(meters) + ' meters'
+    },
+
+    /**
+     * Callback function for the slide event
+     */
     slide: function (event, ui) {
-
-      var field_name = $(this).parent().attr('id').replace('info-pane-', '');
+      var field_name = $(this).parents('.gpx-field-container').attr('id').replace('gpx-field-container-', '');
       var fieldSettings = drupalSettings.gpx_field.fields[field_name];
-
-      gpxField.showHideLines(ui.value, field_name, fieldSettings);
-
-      // console.log(ui.value);
-      // console.log($(this).parent().attr('id').replace('info-pane-', ''));
-
+      gpxField.setPosition(ui.value, field_name, fieldSettings);
     },
+
+    setPosition: function(index, field_name, fieldSettings) {
+      gpxField.showHideLines(index, field_name, fieldSettings);
+      gpxField.moveCamera(index, field_name, fieldSettings);
+      gpxField.updateInfoPane(index, field_name, fieldSettings);
+      gpxField.setElevationChartSelection(index, field_name);
+      sliders[field_name].slider('value', index);
+    },
+
+    /**
+     * Show or hide lines based on the slider position
+     */
     showHideLines: function (index, field_name, fieldSettings) {
       fieldSettings.distance = 0;
       for (var i = 1; i <= fieldSettings.data.length - 1; i++) {
@@ -208,10 +374,14 @@
         }
       }
     },
+
+    /**
+     * Show all lines before current index
+     */
     showLine: function (i, field_name, fieldSettings) {
 
+      // If line doesn't exist then create it
       if (typeof fieldSettings.data[i].line === 'undefined') {
-
         fieldSettings.data[i].line = new google.maps.Polyline({
           path: [fieldSettings.data[i - 1].LatLng, fieldSettings.data[i].LatLng],
           strokeColor: "#FF0000",
@@ -220,36 +390,48 @@
           map: maps[field_name]
         });
         fieldSettings.data[i].visible = true;
-
       }
 
+      // If line is hidden show it
       if (!fieldSettings.data[i].visible) {
         fieldSettings.data[i].line.setMap(maps[field_name]);
         fieldSettings.data[i].visible = true;
       }
 
+      // Update the current distance
       fieldSettings.distance += fieldSettings.data[i].distance;
 
     },
-    hideLine: function (i, field_name, fieldSettings) {
 
+    /**
+     * Hide all lines after current index
+     */
+    hideLine: function (i, field_name, fieldSettings) {
       if (typeof fieldSettings.data[i].visible !== 'undefined' && fieldSettings.data[i].visible) {
         fieldSettings.data[i].line.setMap(null);
         fieldSettings.data[i].visible = false;
       }
-
     },
 
-    createCameraTrack: function (field_name, fieldSettings) {
-      console.log(fieldSettings, 'fieldSettings');
+    /**
+     * Set camera based on current index
+     */
+    moveCamera: function(i, field_name, fieldSettings) {
+      maps[field_name].setCenter(new google.maps.LatLng(fieldSettings.data[i].camera.lat, fieldSettings.data[i].camera.lng));
+    },
 
+    /**
+     * Add points and a line to show the camera track.
+     * Only used for debugging purposes.
+     */
+    createCameraTrack: function (field_name, fieldSettings) {
+
+      // Add points
       var image = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
       for (var i = 0; i <= fieldSettings.camera_track_points.length - 1; i++) {
 
         var lat = parseFloat(fieldSettings.camera_track_points[i]['lat']);
         var lng = parseFloat(fieldSettings.camera_track_points[i]['lng']);
-
-        console.log('Create point ' + i);
 
         var marker = new google.maps.Marker({
           position: {lat: lat, lng: lng},
@@ -259,140 +441,14 @@
         });
       }
 
-    },
-
-    createCameraTrackOld: function (field_name, fieldSettings) {
-
-      if (typeof cameraTracks[field_name] === 'undefined') {
-        cameraTracks[field_name] = [];
+      // Draw line
+      var cameraTrack = [];
+      for (i = 0; i <= fieldSettings.data.length - 1; i++) {
+        cameraTrack.push({lat: fieldSettings.data[i].camera.lat, lng: fieldSettings.data[i].camera.lng});
       }
-
-      var cameraTrack = cameraTracks[field_name];
-      var track = fieldSettings.data;
-      var distLimit = 2000;
-      var cameraTrackResolution = 0.1;
-      var gap = Math.round(track.length * cameraTrackResolution);
-      var trackLatLng, lastTrackLatLng;
-
-      // Cut down the number of points to use
-      for (var i = 0; i <= track.length - 1; i += gap) {
-
-        // make sure not too close to last marker
-        trackLatLng = track[i].LatLng;
-        if (typeof lastTrackLatLng !== 'undefined') {
-          var distance = google.maps.geometry.spherical.computeDistanceBetween(trackLatLng, lastTrackLatLng);
-          if (distance < distLimit) {
-            continue;
-          }
-        }
-
-        lastTrackLatLng = trackLatLng;
-
-        cameraTrack.push([track[i].lat, track[i].lng]);
-
-      }
-
-      // make sure last track point is last gps point
-      cameraTrack[cameraTrack.length - 1] = [track[track.length - 1].lat, track[track.length - 1].lng];
-
-      var showCameraTrack = false;
-      if (showCameraTrack) {
-
-        // add markers for curve control points
-        for (i = 0; i <= track.length - 1; i++) {
-          var image = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
-
-          if(typeof cameraTrack[i] === 'undefined') {
-            continue;
-          }
-
-          var marker = new google.maps.Marker({
-            position: {lat: cameraTrack[i][0], lng: cameraTrack[i][1]},
-            // position: new google.maps.LatLng(track[i][0], track[i][1]),
-            map: maps[field_name],
-            title: 'Hello World!',
-            icon: image
-          });
-        }
-      }
-
-      console.log(cameraTrack, 'cameraTrack');
-
-      // create the smoothed out path
-      var smoothPath = Smooth(cameraTrack, {
-        // method: Smooth.METHOD_CUBIC,
-        method: Smooth.METHOD_CUBIC,
-        // clip: Smooth.CLIP_PERIODIC,
-        // cubicTension: Smooth.CUBIC_TENSION_CATMULL_ROM
-      });
-
-      var test = [];
-
-      // Set the camera location for every gps point
-      var path_points = [];
-      for (i = 0; i <= track.length; i++) {
-        var path_perc = i / track.length;
-        var path_res = smoothPath(track.length * path_perc);
-
-        path_points.push({
-          LatLngArr: path_res,
-          LatLng: new google.maps.LatLng(path_res[0], path_res[1]),
-          Lat: path_res[0],
-          Lng: path_res[1]
-        });
-
-        test.push({lat: path_res[0], lng: path_res[1]});
-      }
-
-      console.log(path_points, 'path_points');
-
-      var lastLowestDistIndex;
-
-      // Assign each gps point a camera track location
-      for (i = 0; i <= track.length -1; i++) {
-
-        // assign point on curve closest to this marker
-        var lowestDist = null;
-        var lowestDistIndex = null;
-
-        for (var x = (typeof lastLowestDistIndex === 'undefined' ? 0 : lastLowestDistIndex); x <= path_points.length -1; x++) {
-
-          var distance = google.maps.geometry.spherical.computeDistanceBetween(track[i].LatLng, path_points[x].LatLng);
-
-          if(lowestDist === null) {
-            lowestDist = distance;
-            lowestDistIndex = x;
-          }
-          else if(distance < lowestDist) {
-            lowestDist = distance;
-            lowestDistIndex = x;
-          }
-        }
-
-        // Never go back - always forwards
-        if(typeof lastLowestDistIndex !== 'undefined' && lowestDistIndex < lastLowestDistIndex) {
-          lowestDistIndex = lastLowestDistIndex;
-        }
-
-        lastLowestDistIndex = lowestDistIndex;
-
-        track[i].track = path_points[lowestDistIndex].LatLngArr;
-
-        if(typeof cameraTrackCoords[field_name] === 'undefined') {
-          cameraTrackCoords[field_name] = [];
-        }
-
-        cameraTrackCoords[field_name].push({lat: path_points[lowestDistIndex].Lat, lng: path_points[lowestDistIndex].Lng});
-
-        this.drawCameraTrack(field_name, test);
-      }
-
-    },
-    drawCameraTrack: function(field_name, test) {
 
       var cameraLine = new google.maps.Polyline({
-        // path: cameraTrackCoords[field_name],
-        path: test,
+        path: cameraTrack,
         geodesic: true,
         strokeColor: '#0000FF',
         strokeOpacity: 1.0,

@@ -12,6 +12,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\gpx_field\CubicSplines;
 use MathPHP\NumericalAnalysis\Interpolation\NaturalCubicSpline;
+use MathPHP\NumericalAnalysis\Interpolation\ClampedCubicSpline;
+use MathPHP\NumericalAnalysis\Interpolation\NewtonPolynomialForward;
+use MathPHP\NumericalAnalysis\Interpolation\LagrangePolynomial;
+
+// NewtonPolynomialForward
 
 /**
  * Plugin implementation of the 'gpx' formatter.
@@ -86,6 +91,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
         'maptype' => 'TERRAIN',
         'showelechart' => TRUE,
         'animatetrack' => TRUE,
+        'showinfopane' => TRUE,
       ) + parent::defaultSettings();
   }
 
@@ -136,7 +142,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     $elements['showelechart'] = array(
       '#type' => 'checkbox',
       '#default_value' => $this->getSetting('showelechart'),
-      '#title' => t('Elevation chart'),
+      '#title' => t('Show eslevation chart'),
       '#description' => t('Should the elevation chart be displayed?.'),
     );
 
@@ -145,6 +151,13 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       '#default_value' => $this->getSetting('animatetrack'),
       '#title' => t('Animate track'),
       '#description' => t('Use a slider to animate moving along the track'),
+    );
+
+    $elements['showinfopane'] = array(
+      '#type' => 'checkbox',
+      '#default_value' => $this->getSetting('showinfopane'),
+      '#title' => t('Show info pane'),
+      '#description' => t('Show the info pane with distance, time, speed etc?'),
     );
 
     return $elements;
@@ -161,6 +174,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     $summary[] = t('Map Type: @maptype', ['@maptype' => $this->getSetting('maptype')]);
     $summary[] = t('Elevation chart: @showelechart', ['@showelechart' => $this->getSetting('showelechart') ? 'Shown' : 'Hidden']);
     $summary[] = t('Animate track: @animatetrack', ['@animatetrack' => $this->getSetting('animatetrack') ? 'Yes' : 'No']);
+    $summary[] = t('Show info pane: @showinfopane', ['@showinfopane' => $this->getSetting('showinfopane') ? 'Yes' : 'No']);
     return $summary;
   }
 
@@ -178,15 +192,16 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
         '#type' => 'container',
         '#attributes' => [
           'class' => ['gpx-field-container'],
+          'id' => 'gpx-field-container-' . $field_name,
         ],
       ],
     ];
 
-    $element['gpx-field-container']['info-pane'] = [
+    $element['gpx-field-container']['scrollbar'] = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['gpx-field-info-pane'],
-        'id' => 'info-pane-' . $field_name,
+        'class' => ['gpx-field-scrollbar'],
+        'id' => 'scrollbar-' . $field_name,
       ],
     ];
 
@@ -197,7 +212,24 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       ],
     ];
 
-    $element['gpx-field-container']['inner']['map-canvas'] = [
+    if($this->getSetting('showinfopane')) {
+      $element['gpx-field-container']['inner']['info-pane'] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['gpx-field-info-pane'],
+          'id' => 'info-pane-' . $field_name,
+        ],
+      ];
+    }
+
+    $element['gpx-field-container']['inner']['map-n-chart'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['gpx-field-map-n-chart'],
+      ],
+    ];
+
+    $element['gpx-field-container']['inner']['map-n-chart']['map-canvas'] = [
       '#type' => 'container',
       '#attributes' => [
         'class' => ['map-canvas'],
@@ -206,7 +238,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       ],
     ];
 
-    $element['gpx-field-container']['inner']['elevation-canvas'] = [
+    $element['gpx-field-container']['inner']['map-n-chart']['elevation-canvas'] = [
       '#type' => 'container',
       '#attributes' => [
         'class' => ['elevation-chart'],
@@ -214,28 +246,9 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       ],
     ];
 
-    $data = [];
-
-    $lat_total = 0;
-    $lng_total = 0;
-    $count = 0;
-
-    foreach ($items as $delta => $item) {
-
-      $time = DrupalDateTime::createFromTimestamp($item->time);
-
-      $data[] = [
-        'lat'  => $item->lat,
-        'lng'  => $item->lng,
-        'ele'  => $item->ele,
-        'time' => $time->format('d/m/Y H:i:s'),
-      ];
-
-      $lat_total += $item->lat;
-      $lng_total += $item->lng;
-      $count++;
-
-    }
+    // Trim markers so there is not a stationary period at the start or the end
+    // of the track
+    $data = $this->trimPoints($items);
 
     $camera_track_points = $this->createCameraTrack($data);
 
@@ -261,12 +274,10 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
               'mapType' => $this->getSetting('maptype'),
               'showelechart' => $this->getSetting('showelechart'),
               'animatetrack' => $this->getSetting('animatetrack'),
+              'showinfopane' => $this->getSetting('showinfopane'),
               'data' => $data,
               'camera_track_points' => $camera_track_points,
-              'map_centre' => [
-                'lat' => $lat_total / $count,
-                'lng' => $lng_total / $count,
-              ]
+              'distance' => 0,
             ],
           ],
           'google_map_url' => $google_map_url,
@@ -278,52 +289,90 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       $element['#attached']['library'][] = 'gpx_field/gpx_field.charts';
     }
 
-    if($this->getSetting('animatetrack')) {
-      $element['#attached']['library'][] = 'gpx_field/smooth';
-    }
-
     return [$element];
 
   }
 
-  protected function createCameraTrack($data) {
-    $points = $this->createCameraTrackPoints($data);
+  /**
+   * GPS tracks often have lots of point at the start and the end with very
+   * little movement. We want to trim these off so it does not effect the
+   * animation.
+   * If a point is within 200 meters of the start or the end we trim it off.
+   */
+  protected function trimPoints($items) {
 
-    $coords = [];
-    foreach($points as $point) {
-      $coords[] = [$point['lat'], $point['lng']];
+    $trim_distance_limit = 200;
+
+    // Set start point
+    for($start_index = 1; $start_index < count($items); $start_index++) {
+      $item = $items[$start_index];
+      $distance = $this->haversineGreatCircleDistance($items[0]->lat,$items[0]->lng, $item->lat, $item->lng);
+      if($distance > $trim_distance_limit) {
+        break;
+      }
     }
 
-    $coords = [[0, 1], [1, 4], [2, 9], [3, 16]];
+    // Set end point
+    $last_item = $items[count($items) - 1];
+    for($end_index = count($items) - 1; $end_index > 1; $end_index--) {
+      $item = $items[$end_index];
+      $distance = $this->haversineGreatCircleDistance($last_item->lat,$last_item->lng, $item->lat, $item->lng);
+      if($distance > $trim_distance_limit) {
+        break;
+      }
+    }
 
-    $p = NaturalCubicSpline::interpolate($coords);
+    // Build final set of points
+    $data = [];
+    for($index = $start_index; $index <= $end_index; $index++) {
+      $item = $items[$index];
+      $time = DrupalDateTime::createFromTimestamp($item->time);
+      $data[] = [
+        'lat'  => $item->lat,
+        'lng'  => $item->lng,
+        'ele'  => $item->ele,
+        'date' => $time->format('d/m/Y'),
+        'time' => $time->format('H:i:s'),
+        'ts' => $time->format('U'),
+      ];
+    }
 
-    dd($coords, '$coords');
-    //dd($p, '$p');
-//
-    dd($p(0), '$p 0');
-//    dd($p(1), '$p 1');
-//    dd($p(2), '$p 2');
-//    dd($p(3), '$p 3');
-//    dd($p(4), '$p 4');
-//    dd($p(5), '$p 5');
-//    dd($p(6), '$p 6');
+    return $data;
+  }
 
-//
-//    dd($coords, '$coords');
-//
-//    $curve = new CubicSplines();
-//    $curve->setInitCoords($coords);
-//    $aCoords = $curve->processCoords();
-//
-//    dd($aCoords, '$aCoords');
+  /**
+   * Interpolate the points to create a smooth track.
+   */
+  protected function createCameraTrack(&$data) {
+    $points = $this->createCameraTrackPoints($data);
+
+    $lats = [];
+    $lngs = [];
+    foreach($points as $i => $point) {
+      $lats[] = [$point['index'], $point['lat']];
+      $lngs[] = [$point['index'], $point['lng']];
+    }
+
+    $latp = NaturalCubicSpline::interpolate($lats);
+    $lngp = NaturalCubicSpline::interpolate($lngs);
+
+    foreach($data as $index => &$item) {
+      $item['camera'] = [
+        'lat' => $latp($index),
+        'lng' => $lngp($index),
+      ];
+    }
 
     return $points;
   }
 
+  /**
+   * Just select a handful of points from the entire track.
+   */
   protected function createCameraTrackPoints($data) {
 
-    $resolution = 0.1;
+    //$resolution = 0.1;
+    $resolution = 0.05;
     $gap = round(count($data) * $resolution);
     $points = [];
 
@@ -342,8 +391,9 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       }
 
       $point = [
-        'lat'  => $data[$i]['lat'],
-        'lng'  => $data[$i]['lng'],
+        'lat'   => $data[$i]['lat'],
+        'lng'   => $data[$i]['lng'],
+        'index' => (int) $i,
       ];
 
       $points[] = $point;
@@ -351,8 +401,9 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
 
     // make sure last track point is last gps point
     $points[count($points) - 1] = [
-      'lat' => $last['lat'],
-      'lng' => $last['lng'],
+      'lat'   => $last['lat'],
+      'lng'   => $last['lng'],
+      'index' => count($data) - 1,
     ];
 
     return $points;

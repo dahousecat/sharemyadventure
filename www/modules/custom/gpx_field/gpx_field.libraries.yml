@@ -21,12 +21,3 @@ gpx_field.charts:
   version: 1.x
   js:
     https://www.gstatic.com/charts/loader.js: { type: external }
-
-smooth:
-  remote: https://github.com/osuushi/Smooth.js
-  version: VERSION
-  license:
-    name: MIT
-    gpl-compatible: false
-  js:
-    /libraries/smooth/smooth.js: { minified: false }
