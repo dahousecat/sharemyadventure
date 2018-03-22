@@ -1,39 +1,35 @@
-.gpx-field-container {
-
-}
-
 .gpx-field-info-pane {
-    flex: 0 0 20%;
-    margin-right: 1rem;
+  flex: 0 0 20%;
+  margin-right: 1rem;
 }
 
 .gpx-field-scrollbar {
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .gpx-field-inner {
-    display: flex;
+  display: flex;
 }
 
 .gpx-field-map-n-chart {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .gpx-field-info-pane dl {
   width: 100%;
   overflow: hidden;
   padding: 0;
-  margin: 0
+  margin: 0;
 }
 .gpx-field-info-pane dt {
   float: left;
   width: 50%;
   padding: 0;
-  margin: 0
+  margin: 0;
 }
 .gpx-field-info-pane dd {
   float: left;
   width: 50%;
   padding: 0;
-  margin: 0
+  margin: 0;
 }

@@ -1,27 +1,24 @@
 <?php
 
-/**
- * @file
- * Contains Drupal\gpx_track_elevation\Form\GPXTrackEleForm.
- */
-
 namespace Drupal\gpx_field\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
-class ConfigurationForm extends ConfigFormBase
-{
+/**
+ * Create form for module configuration.
+ */
+class ConfigurationForm extends ConfigFormBase {
 
   /**
-   * {@inheritdoc}.
+   * Return the forms ID.
    */
   public function getFormId() {
     return 'gpx_field_configuration_form';
   }
 
   /**
-   * {@inheritdoc}.
+   * Build the form.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
 
@@ -29,32 +26,32 @@ class ConfigurationForm extends ConfigFormBase
 
     $config = $this->config('gpx_field.settings');
 
-    $form['google_map_key'] = array(
+    $form['google_map_key'] = [
       '#type' => 'textfield',
       '#default_value' => $config->get('gpx_field.google_map_key'),
       '#title' => t('Google Map API Key'),
       '#required' => FALSE,
       '#description' => t('Insert the Google API Key to use.'),
-    );
+    ];
 
-    $form['http'] = array(
+    $form['http'] = [
       '#type' => 'select',
       '#default_value' => $config->get('gpx_field.http'),
       '#title' => t('HTTP or HTTPS'),
       '#required' => TRUE,
-      '#options' => array(
+      '#options' => [
         'https' => 'https',
         'http' => 'http',
-      ),
+      ],
       '#description' => t('Select protocol to be used with Google Maps API'),
-    );
+    ];
 
     return $form;
 
   }
 
   /**
-   * {@inheritdoc}.
+   * Submit handler for the film.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
@@ -67,7 +64,7 @@ class ConfigurationForm extends ConfigFormBase
   }
 
   /**
-   * {@inheritdoc}.
+   * Returns editable config names.
    */
   protected function getEditableConfigNames() {
     return [

@@ -5,10 +5,78 @@
  * Contains gpx_field.module.
  */
 
-use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\field\Entity\FieldStorageConfig;
 
-// Include hooks
-foreach (glob(__DIR__ . '/hooks/*.inc') as $file) {
-    /** @noinspection PhpIncludeInspection */
-    require_once $file;
+/**
+ * Implements hook_field_widget_form_container_alter().
+ */
+function gpx_field_field_widget_form_container_alter(&$element, FormStateInterface $form_state, $context) {
+
+  $field_definition = $context['items']->getFieldDefinition();
+
+  if ($field_definition->getType() == 'gpx') {
+
+    $element['#type'] = 'fieldset';
+    $element['#title'] = $element['widget']['#title'];
+    $element['widget']['#title'] = t('Track parts');
+    $element['widget']['#access'] = FALSE;
+
+    $element['gpx_field_gpx'] = [
+      '#type' => 'managed_file',
+      '#title' => t('GPX'),
+      '#default_value' => NULL,
+      '#description' => t('Allowed extensions: gpx'),
+      '#upload_validators' => [
+        'file_validate_extensions' => ['gpx'],
+      ],
+      '#weight' => 0,
+    ];
+
+    $element['gpx_field_action'] = [
+      '#type' => 'radios',
+      '#title' => t('Action'),
+      '#default_value' => 'append',
+      '#options' => [
+        'append' => t('Append'),
+        'replace' => t('Replace'),
+      ],
+      '#weight' => 1,
+    ];
+
+    $element['widget']['#weight'] = 2;
+
+  }
+
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for field_storage_config_edit_form.
+ *
+ * Used to ensure that all GPX fields are created with multi-cardinality.
+ */
+function gpx_field_form_field_storage_config_edit_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+
+  $request = \Drupal::request();
+  $entity_type_id = $request->attributes->get('entity_type_id');
+  $field_config = $request->attributes->get('field_config');
+
+  $parts = explode('.', $field_config);
+  $field_name = array_pop($parts);
+
+  $field_config = FieldStorageConfig::loadByName($entity_type_id, $field_name);
+
+  if ($field_config->getType() == 'gpx') {
+
+    // Disable cardinality settings and force multi-cardinality.
+    $form['cardinality_container']['cardinality_wrapper']['cardinality']['#value'] = -1;
+    $form['cardinality_container']['cardinality_wrapper']['cardinality']['#disabled'] = TRUE;
+    $form['cardinality_container']['cardinality_wrapper']['cardinality']['#description'] = t('All fields of type gpx have unlimited values.');
+
+    // Disable reorderable setttings and disable reordering.
+    $form['cardinality_container']['reorderable']['#default_value'] = FALSE;
+    $form['cardinality_container']['reorderable']['#disabled'] = TRUE;
+    $form['cardinality_container']['reorderable']['#description'] = t('Gpx fields are ordered automatically by the timestamp.');
+  }
+
 }

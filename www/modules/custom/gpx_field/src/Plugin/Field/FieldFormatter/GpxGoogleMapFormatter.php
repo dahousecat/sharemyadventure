@@ -10,13 +10,7 @@ use Drupal\Core\Path\PathValidatorInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\gpx_field\CubicSplines;
 use MathPHP\NumericalAnalysis\Interpolation\NaturalCubicSpline;
-use MathPHP\NumericalAnalysis\Interpolation\ClampedCubicSpline;
-use MathPHP\NumericalAnalysis\Interpolation\NewtonPolynomialForward;
-use MathPHP\NumericalAnalysis\Interpolation\LagrangePolynomial;
-
-// NewtonPolynomialForward
 
 /**
  * Plugin implementation of the 'gpx' formatter.
@@ -29,8 +23,7 @@ use MathPHP\NumericalAnalysis\Interpolation\LagrangePolynomial;
  *   }
  * )
  */
-class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPluginInterface
-{
+class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPluginInterface {
 
   /**
    * The path validator service.
@@ -84,15 +77,15 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
    * {@inheritdoc}
    */
   public static function defaultSettings() {
-    return array(
-        'trcolor' => '#006CAB',
-        'epcolor' => '#006CAA',
-        'trstroke' => 2,
-        'maptype' => 'TERRAIN',
-        'showelechart' => TRUE,
-        'animatetrack' => TRUE,
-        'showinfopane' => TRUE,
-      ) + parent::defaultSettings();
+    return [
+      'trcolor' => '#006CAB',
+      'epcolor' => '#006CAA',
+      'trstroke' => 2,
+      'maptype' => 'TERRAIN',
+      'showelechart' => TRUE,
+      'animatetrack' => TRUE,
+      'showinfopane' => TRUE,
+    ] + parent::defaultSettings();
   }
 
   /**
@@ -101,64 +94,64 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
   public function settingsForm(array $form, FormStateInterface $form_state) {
     $elements = parent::settingsForm($form, $form_state);
 
-    $elements['trcolor'] = array(
+    $elements['trcolor'] = [
       '#type' => 'textfield',
       '#default_value' => $this->getSetting('trcolor'),
       '#title' => t('Track color'),
       '#required' => TRUE,
       '#description' => t('Select the track color.'),
-    );
+    ];
 
-    $elements['epcolor'] = array(
+    $elements['epcolor'] = [
       '#type' => 'textfield',
       '#default_value' => $this->getSetting('epcolor'),
       '#title' => t('Elevation profile color'),
       '#required' => TRUE,
       '#description' => t('Select the track color.'),
-    );
+    ];
 
-    $elements['trstroke'] = array(
+    $elements['trstroke'] = [
       '#type' => 'textfield',
       '#default_value' => $this->getSetting('trstroke'),
       '#title' => t('Track stroke'),
       '#required' => TRUE,
       '#description' => t('Select the track stroke weight.'),
-    );
+    ];
 
-    $elements['maptype'] = array(
+    $elements['maptype'] = [
       '#type' => 'select',
       '#default_value' => $this->getSetting('maptype'),
       '#title' => t('Map Type'),
       '#required' => TRUE,
-      '#options' => array(
+      '#options' => [
         'terrain' => t('Terrain'),
         'road' => t('Road'),
         'hybrid' => t('Hybrid'),
         'satellite' => t('Satellite'),
-      ),
+      ],
       '#description' => t('Select the map default type'),
-    );
+    ];
 
-    $elements['showelechart'] = array(
+    $elements['showelechart'] = [
       '#type' => 'checkbox',
       '#default_value' => $this->getSetting('showelechart'),
       '#title' => t('Show eslevation chart'),
       '#description' => t('Should the elevation chart be displayed?.'),
-    );
+    ];
 
-    $elements['animatetrack'] = array(
+    $elements['animatetrack'] = [
       '#type' => 'checkbox',
       '#default_value' => $this->getSetting('animatetrack'),
       '#title' => t('Animate track'),
       '#description' => t('Use a slider to animate moving along the track'),
-    );
+    ];
 
-    $elements['showinfopane'] = array(
+    $elements['showinfopane'] = [
       '#type' => 'checkbox',
       '#default_value' => $this->getSetting('showinfopane'),
       '#title' => t('Show info pane'),
       '#description' => t('Show the info pane with distance, time, speed etc?'),
-    );
+    ];
 
     return $elements;
   }
@@ -212,7 +205,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       ],
     ];
 
-    if($this->getSetting('showinfopane')) {
+    if ($this->getSetting('showinfopane')) {
       $element['gpx-field-container']['inner']['info-pane'] = [
         '#type' => 'container',
         '#attributes' => [
@@ -247,7 +240,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     ];
 
     // Trim markers so there is not a stationary period at the start or the end
-    // of the track
+    // of the track.
     $data = $this->trimPoints($items);
 
     $camera_track_points['normal'] = $this->createCameraTrack($data, 'normal');
@@ -256,7 +249,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     $init_map_callback = 'Drupal.behaviors.gpx_field.initMap';
     $google_map_url = $config->get('gpx_field.http') . '://maps.googleapis.com/maps/api/js?libraries=geometry&callback=' . $init_map_callback;
 
-    if(!empty($config->get('gpx_field.google_map_key'))) {
+    if (!empty($config->get('gpx_field.google_map_key'))) {
       $google_map_url .= '&key=' . $config->get('gpx_field.google_map_key') . '&';
     }
 
@@ -286,7 +279,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       ],
     ];
 
-    if($this->getSetting('showelechart')) {
+    if ($this->getSetting('showelechart')) {
       $element['#attached']['library'][] = 'gpx_field/gpx_field.charts';
     }
 
@@ -295,37 +288,39 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
   }
 
   /**
+   * Trim points off start and end of track based on distance.
+   *
    * GPS tracks often have lots of point at the start and the end with very
    * little movement. We want to trim these off so it does not effect the
-   * animation.
-   * If a point is within 200 meters of the start or the end we trim it off.
+   * animation. If a point is within 200 meters of the start or the end we trim
+   * it off.
    */
   protected function trimPoints($items) {
 
     $trim_distance_limit = 200;
 
-    // Set start point
-    for($start_index = 1; $start_index < count($items); $start_index++) {
+    // Set start point.
+    for ($start_index = 1; $start_index < count($items); $start_index++) {
       $item = $items[$start_index];
-      $distance = $this->haversineGreatCircleDistance($items[0]->lat,$items[0]->lng, $item->lat, $item->lng);
-      if($distance > $trim_distance_limit) {
+      $distance = $this->haversineGreatCircleDistance($items[0]->lat, $items[0]->lng, $item->lat, $item->lng);
+      if ($distance > $trim_distance_limit) {
         break;
       }
     }
 
-    // Set end point
+    // Set end point.
     $last_item = $items[count($items) - 1];
-    for($end_index = count($items) - 1; $end_index > 1; $end_index--) {
+    for ($end_index = count($items) - 1; $end_index > 1; $end_index--) {
       $item = $items[$end_index];
-      $distance = $this->haversineGreatCircleDistance($last_item->lat,$last_item->lng, $item->lat, $item->lng);
-      if($distance > $trim_distance_limit) {
+      $distance = $this->haversineGreatCircleDistance($last_item->lat, $last_item->lng, $item->lat, $item->lng);
+      if ($distance > $trim_distance_limit) {
         break;
       }
     }
 
-    // Build final set of points
+    // Build final set of points.
     $data = [];
-    for($index = $start_index; $index <= $end_index; $index++) {
+    for ($index = $start_index; $index <= $end_index; $index++) {
       $item = $items[$index];
       $time = DrupalDateTime::createFromTimestamp($item->time);
       $data[] = [
@@ -350,7 +345,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
 
     $lats = [];
     $lngs = [];
-    foreach($points as $i => $point) {
+    foreach ($points as $i => $point) {
       $lats[] = [$point['index'], $point['lat']];
       $lngs[] = [$point['index'], $point['lng']];
     }
@@ -358,7 +353,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     $latp = NaturalCubicSpline::interpolate($lats);
     $lngp = NaturalCubicSpline::interpolate($lngs);
 
-    foreach($data as $index => &$item) {
+    foreach ($data as $index => &$item) {
       $item['camera'][$detail] = [
         'lat' => $latp($index),
         'lng' => $lngp($index),
@@ -381,11 +376,11 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     $distAsCrowFlies = $this->haversineGreatCircleDistance($first['lat'], $first['lng'], $last['lat'], $last['lng']);
     $distLimit = $distAsCrowFlies / 25;
 
-    for($i = 0; $i < count($data) - 1; $i += $gap) {
+    for ($i = 0; $i < count($data) - 1; $i += $gap) {
 
-      if(isset($point)) {
+      if (isset($point)) {
         $distance = $this->haversineGreatCircleDistance($point['lat'], $point['lng'], $data[$i]['lat'], $data[$i]['lng']);
-        if($distance < $distLimit) {
+        if ($distance < $distLimit) {
           continue;
         }
       }
@@ -399,7 +394,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
       $points[] = $point;
     }
 
-    // make sure last track point is last gps point
+    // Make sure last track point is last gps point.
     $points[count($points) - 1] = [
       'lat'   => $last['lat'],
       'lng'   => $last['lng'],
@@ -411,17 +406,26 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
   }
 
   /**
-   * Calculates the great-circle distance between two points, with
-   * the Haversine formula.
-   * @param float $latitudeFrom Latitude of start point in [deg decimal]
-   * @param float $longitudeFrom Longitude of start point in [deg decimal]
-   * @param float $latitudeTo Latitude of target point in [deg decimal]
-   * @param float $longitudeTo Longitude of target point in [deg decimal]
-   * @param float $earthRadius Mean earth radius in [m]
-   * @return float Distance between points in [m] (same as earthRadius)
+   * Calculates the great-circle distance between two points.
+   *
+   * Uses the Haversine formula.
+   *
+   * @param float $latitudeFrom
+   *   Latitude of start point in [deg decimal].
+   * @param float $longitudeFrom
+   *   Longitude of start point in [deg decimal].
+   * @param float $latitudeTo
+   *   Latitude of target point in [deg decimal].
+   * @param float $longitudeTo
+   *   Longitude of target point in [deg decimal].
+   * @param float $earthRadius
+   *   Mean earth radius in [m].
+   *
+   * @return float
+   *   Distance between points in [m] (same as earthRadius)
    */
   protected function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371000) {
-    // convert from degrees to radians
+    // Convert from degrees to radians.
     $latFrom = deg2rad($latitudeFrom);
     $lonFrom = deg2rad($longitudeFrom);
     $latTo = deg2rad($latitudeTo);

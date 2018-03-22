@@ -4,7 +4,6 @@ namespace Drupal\gpx_field\Plugin\Field\FieldWidget;
 
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
-use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 
@@ -19,15 +18,13 @@ use Drupal\Core\Datetime\DrupalDateTime;
  *   }
  * )
  */
-class GpxWidget extends WidgetBase
-{
+class GpxWidget extends WidgetBase {
 
   /**
    * {@inheritdoc}
    */
   public static function defaultSettings() {
-    return [
-      ] + parent::defaultSettings();
+    return [] + parent::defaultSettings();
   }
 
   /**
@@ -85,22 +82,17 @@ class GpxWidget extends WidgetBase
   }
 
   /**
-   * Validate gpx field values.
+   * Validate this is a valid latitude.
    */
-  public static function validate($element, FormStateInterface $form_state) {
-    $value = $element['#value'];
-
-//        ddl($element, '$element');
-//        dpm($form_state, '$form_state');
-
-  }
-
   public static function validateLat($element, FormStateInterface $form_state) {
     if ($element['#value'] < -90 || $element['#value'] > 90) {
       $form_state->setError($element, t('Latitude must be between -90 and 90'));
     }
   }
 
+  /**
+   * Validate this is a valid longitude.
+   */
   public static function validateLng($element, FormStateInterface $form_state) {
     if ($element['#value'] < -180 || $element['#value'] > 180) {
       $form_state->setError($element, t('Longitude must be between -180 and 180'));
@@ -128,7 +120,7 @@ class GpxWidget extends WidgetBase
    */
   public function massageFormValues(array $values, array $form, FormStateInterface $form_state) {
 
-    // Get action and load gpx data from file
+    // Get action and load gpx data from file.
     $action = $form_state->getValue('gpx_field_action');
     $gpx_value = $form_state->getValue('gpx_field_gpx');
     $fid = isset($gpx_value[0]) ? $gpx_value[0] : NULL;
@@ -145,18 +137,20 @@ class GpxWidget extends WidgetBase
     $delta = 0;
     $new_values = [];
 
-    // If action is replace delete all existing data
+    // If action is replace delete all existing data.
     if ($action == 'append') {
-      // Loop form field values to convert date to timestamp
+      // Loop form field values to convert date to timestamp.
       foreach ($values as $item) {
 
         // @todo The structure is different whether access is denied or not, to
         //   be fixed in https://www.drupal.org/node/2326533.
         if (isset($item['time']) && $item['time'] instanceof DrupalDateTime) {
           $date = $item['time'];
-        } elseif (isset($item['time']['object']) && $item['time']['object'] instanceof DrupalDateTime) {
+        }
+        elseif (isset($item['time']['object']) && $item['time']['object'] instanceof DrupalDateTime) {
           $date = $item['time']['object'];
-        } else {
+        }
+        else {
           $date = new DrupalDateTime();
         }
         $item['time'] = $date->getTimestamp();
@@ -167,7 +161,7 @@ class GpxWidget extends WidgetBase
       }
     }
 
-    // Loop GPX data to add to values array
+    // Loop GPX data to add to values array.
     foreach ($gpx_data as $gpx_item) {
 
       $timestamp = strtotime($gpx_item->time);
@@ -184,7 +178,7 @@ class GpxWidget extends WidgetBase
       $delta++;
     }
 
-    // Finally ensure all data is sorted according to the timestamps
+    // Finally ensure all data is sorted according to the timestamps.
     ksort($new_values);
 
     return $new_values;
