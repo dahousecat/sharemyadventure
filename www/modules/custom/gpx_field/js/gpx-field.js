@@ -52,7 +52,9 @@
           if (fieldSettings.animatetrack) {
 
             // Create the camera track
-            gpxField.createCameraTrack(fieldSettings);
+            if(gpxField.showCameraTrack) {
+              gpxField.createCameraTrack(fieldSettings);
+            }
 
             // Set up the info pane to control the animation
             gpxField.createInfoPane(fieldSettings);
@@ -86,6 +88,8 @@
    */
   var gpxField = {
 
+    showCameraTrack: false,
+
     /**
      * Create the Google map
      */
@@ -101,7 +105,9 @@
 
     mapZoomChangeCallback: function() {
       var fieldSettings = this;
-      gpxField.createCameraTrack(fieldSettings);
+      if(gpxField.showCameraTrack) {
+        gpxField.createCameraTrack(fieldSettings);
+      }
     },
 
     /**
