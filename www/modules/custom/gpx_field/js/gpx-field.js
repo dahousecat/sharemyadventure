@@ -11,6 +11,7 @@
   var charts = {};
   var infoPanes = {};
   var sliders = {};
+  var cameraTracks = {};
 
   /**
    * Attaches the gpx field behaviour to gpx fields.
@@ -98,6 +99,15 @@
       maps[field_name] = new google.maps.Map(document.getElementById('map-canvas-' + field_name), {
         mapTypeId: fieldSettings.mapType
       });
+
+      // Add callback for when zoom changes
+      google.maps.event.addListener(maps[field_name], 'zoom_changed', this.mapZoomChangeCallback.bind(field_name));
+    },
+
+    mapZoomChangeCallback: function() {
+      var field_name = this;
+      var fieldSettings = drupalSettings.gpx_field.fields[field_name];
+      gpxField.createCameraTrack(field_name, fieldSettings);
     },
 
     /**
@@ -130,7 +140,6 @@
       for (var i = 0; i < fieldSettings.data.length; i++) {
         bounds.extend(fieldSettings.data[i].LatLng);
       }
-
 
       // If the track is animated zoom in and centre on the start point
       if(fieldSettings.animatetrack) {
@@ -352,6 +361,9 @@
       gpxField.setPosition(ui.value, field_name, fieldSettings);
     },
 
+    /**
+     * Set the correct position for the slider, map and chart.
+     */
     setPosition: function(index, field_name, fieldSettings) {
       gpxField.showHideLines(index, field_name, fieldSettings);
       gpxField.moveCamera(index, field_name, fieldSettings);
@@ -417,7 +429,8 @@
      * Set camera based on current index
      */
     moveCamera: function(i, field_name, fieldSettings) {
-      maps[field_name].setCenter(new google.maps.LatLng(fieldSettings.data[i].camera.lat, fieldSettings.data[i].camera.lng));
+      var resolution = this.getCameraTrackResolution(field_name);
+      maps[field_name].setCenter(new google.maps.LatLng(fieldSettings.data[i].camera[resolution].lat, fieldSettings.data[i].camera[resolution].lng));
     },
 
     /**
@@ -426,38 +439,78 @@
      */
     createCameraTrack: function (field_name, fieldSettings) {
 
-      // Add points
-      var image = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
-      for (var i = 0; i <= fieldSettings.camera_track_points.length - 1; i++) {
+      var resolution = this.getCameraTrackResolution(field_name);
 
-        var lat = parseFloat(fieldSettings.camera_track_points[i]['lat']);
-        var lng = parseFloat(fieldSettings.camera_track_points[i]['lng']);
+      if(typeof cameraTracks[field_name] === 'undefined') {
+        cameraTracks[field_name] = {};
+      }
+      if(typeof cameraTracks[field_name][resolution] === 'undefined') {
+        cameraTracks[field_name][resolution] = {};
+        cameraTracks[field_name][resolution].markers = [];
+      }
 
-        var marker = new google.maps.Marker({
-          position: {lat: lat, lng: lng},
-          map: maps[field_name],
-          title: 'Point ' + i + '. (Lat: ' + lat + ', Lng: ' + lng + ')',
-          icon: image
+      if(cameraTracks[field_name][resolution].markers.length === 0) {
+
+        // Add points
+        var image = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+        for (var i = 0; i <= fieldSettings.camera_track_points[resolution].length - 1; i++) {
+
+          var lat = parseFloat(fieldSettings.camera_track_points[resolution][i]['lat']);
+          var lng = parseFloat(fieldSettings.camera_track_points[resolution][i]['lng']);
+
+          cameraTracks[field_name][resolution].markers.push(new google.maps.Marker({
+            position: {lat: lat, lng: lng},
+            map: maps[field_name],
+            title: 'Point ' + i + '. (Lat: ' + lat + ', Lng: ' + lng + ')',
+            icon: image
+          }));
+        }
+      }
+      else {
+
+        for (var i = 0; i <= cameraTracks[field_name][resolution].markers.length - 1; i++) {
+          cameraTracks[field_name][resolution].markers[i].setMap(maps[field_name]);
+        }
+
+      }
+
+      if(typeof cameraTracks[field_name][resolution].cameraLine === 'undefined') {
+
+        // Draw line
+        var cameraTrack = [];
+        for (i = 0; i <= fieldSettings.data.length - 1; i++) {
+          cameraTrack.push({lat: fieldSettings.data[i].camera[resolution].lat, lng: fieldSettings.data[i].camera[resolution].lng});
+        }
+
+        cameraTracks[field_name][resolution].cameraLine = new google.maps.Polyline({
+          path: cameraTrack,
+          geodesic: true,
+          strokeColor: '#0000FF',
+          strokeOpacity: 1.0,
+          strokeWeight: 1
         });
+
+        cameraTracks[field_name][resolution].cameraLine.setMap(maps[field_name]);
+      }
+      else {
+        cameraTracks[field_name][resolution].cameraLine.setMap(maps[field_name]);
       }
 
-      // Draw line
-      var cameraTrack = [];
-      for (i = 0; i <= fieldSettings.data.length - 1; i++) {
-        cameraTrack.push({lat: fieldSettings.data[i].camera.lat, lng: fieldSettings.data[i].camera.lng});
+      // Hide other resolutions points and lines
+      var otherResolution = resolution === 'normal' ? 'fine' : 'normal';
+      if(typeof cameraTracks[field_name][otherResolution] !== 'undefined') {
+        cameraTracks[field_name][otherResolution].cameraLine.setMap(null);
+        for (var i = 0; i <= cameraTracks[field_name][otherResolution].markers.length - 1; i++) {
+          cameraTracks[field_name][otherResolution].markers[i].setMap(null);
+        }
       }
-
-      var cameraLine = new google.maps.Polyline({
-        path: cameraTrack,
-        geodesic: true,
-        strokeColor: '#0000FF',
-        strokeOpacity: 1.0,
-        strokeWeight: 1
-      });
-
-      cameraLine.setMap(maps[field_name]);
 
     },
+
+    getCameraTrackResolution: function(field_name) {
+      var zoom = maps[field_name].getZoom();
+      return zoom > 13 ? 'fine' : 'normal';
+    }
   };
 
 })(jQuery, Drupal, drupalSettings);

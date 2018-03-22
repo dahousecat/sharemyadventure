@@ -250,7 +250,8 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     // of the track
     $data = $this->trimPoints($items);
 
-    $camera_track_points = $this->createCameraTrack($data);
+    $camera_track_points['normal'] = $this->createCameraTrack($data, 'normal');
+    $camera_track_points['fine'] = $this->createCameraTrack($data, 'fine');
 
     $init_map_callback = 'Drupal.behaviors.gpx_field.initMap';
     $google_map_url = $config->get('gpx_field.http') . '://maps.googleapis.com/maps/api/js?libraries=geometry&callback=' . $init_map_callback;
@@ -343,8 +344,9 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
   /**
    * Interpolate the points to create a smooth track.
    */
-  protected function createCameraTrack(&$data) {
-    $points = $this->createCameraTrackPoints($data);
+  protected function createCameraTrack(&$data, $detail = 'normal') {
+    $resolution = $detail == 'normal' ? 0.1 : 0.05;
+    $points = $this->createCameraTrackPoints($data, $resolution);
 
     $lats = [];
     $lngs = [];
@@ -357,7 +359,7 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     $lngp = NaturalCubicSpline::interpolate($lngs);
 
     foreach($data as $index => &$item) {
-      $item['camera'] = [
+      $item['camera'][$detail] = [
         'lat' => $latp($index),
         'lng' => $lngp($index),
       ];
@@ -369,10 +371,8 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
   /**
    * Just select a handful of points from the entire track.
    */
-  protected function createCameraTrackPoints($data) {
+  protected function createCameraTrackPoints($data, $resolution = 0.1) {
 
-    //$resolution = 0.1;
-    $resolution = 0.05;
     $gap = round(count($data) * $resolution);
     $points = [];
 
