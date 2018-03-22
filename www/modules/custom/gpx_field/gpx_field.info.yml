@@ -1,6 +1,6 @@
-name: 'gpx_field'
+name: 'GPX Field'
 type: module
-description: 'Create a field type for storing gpx data'
+description: 'Defines a field type for storing and displaying gpx data'
 core: 8.x
-package: 'Custom'
+package: Field types
 configure: gpx_field.configuration

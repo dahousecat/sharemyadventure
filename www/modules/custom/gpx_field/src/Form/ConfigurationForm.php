@@ -24,9 +24,9 @@ class ConfigurationForm extends ConfigFormBase
    * {@inheritdoc}.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    // Form constructor
+
     $form = parent::buildForm($form, $form_state);
-    // Default settings
+
     $config = $this->config('gpx_field.settings');
 
     $form['google_map_key'] = array(

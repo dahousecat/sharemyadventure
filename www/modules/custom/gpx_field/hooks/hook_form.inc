@@ -6,22 +6,10 @@
  */
 
 /**
- * Implements hook_form_alter().
- */
-function gpx_field_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id)
-{
-//  $config_factory = \Drupal::configFactory();
-//  $config = $config_factory->getEditable('system.site');
-//  kint($config);
-//  dpm($form, $form_id);
-
-}
-
-/**
  * Implements hook_form_FORM_ID_alter() for field_storage_config_edit_form.
+ * Used to ensure that all GPX fields are created with multi-cardinality.
  */
-function gpx_field_form_field_storage_config_edit_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id)
-{
+function gpx_field_form_field_storage_config_edit_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
 
   $request = \Drupal::request();
   $entity_type_id = $request->attributes->get('entity_type_id');

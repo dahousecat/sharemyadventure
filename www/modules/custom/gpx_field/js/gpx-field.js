@@ -88,10 +88,11 @@
    */
   var gpxField = {
 
+    // Set to true to draw the camera track on the map.
     showCameraTrack: false,
 
     /**
-     * Create the Google map
+     * Create the Google map.
      */
     createMap: function (fieldSettings) {
       console.log(fieldSettings, 'fieldSettings');
@@ -103,6 +104,10 @@
       google.maps.event.addListener(fieldSettings.map, 'zoom_changed', this.mapZoomChangeCallback.bind(fieldSettings));
     },
 
+    /**
+     * Callback when the Google map zoom changes.
+     * Used to swap the course and fine granularity camera track.
+     */
     mapZoomChangeCallback: function() {
       var fieldSettings = this;
       if(gpxField.showCameraTrack) {
@@ -111,7 +116,7 @@
     },
 
     /**
-     * Add a LatLng object and running distance to each node
+     * Add a LatLng object and distance to each node.
      */
     prepareTrackData: function (fieldSettings) {
       var prevLatLng;
@@ -133,7 +138,7 @@
     },
 
     /**
-     * Set zoom and position based on the track
+     * Set zoom and position based on the track.
      */
     setBounds: function (fieldSettings) {
       var bounds = new google.maps.LatLngBounds();
@@ -158,7 +163,7 @@
     },
 
     /**
-     * Get the zoom level for a given Google maps bounds object
+     * Get the zoom level for a given Google maps bounds object.
      */
     getBoundsZoomLevel: function(bounds, mapDim) {
 
@@ -191,7 +196,7 @@
     },
 
     /**
-     * Draw the whole track as one line
+     * Draw the whole track as one line.
      */
     drawSingleTrack: function (map, fieldSettings) {
 
@@ -214,7 +219,7 @@
     },
 
     /**
-     * Build the elevation chart
+     * Build the elevation chart.
      */
     createElevationChart: function (fieldSettings) {
 
@@ -252,7 +257,7 @@
     },
 
     /**
-     * Selection callback function for graph
+     * Selection callback function for graph.
      */
     elevationChartSelectHandler: function() {
       var fieldSettings = this;
@@ -261,14 +266,7 @@
     },
 
     /**
-     * Set selection on graph to index passed in
-     */
-    setElevationChartSelection: function(index, fieldSettings) {
-      fieldSettings.chart.setSelection([{'row': index, 'column': 1}]);
-    },
-
-    /**
-     * Create a pane with track info (distance, time, etc)
+     * Create a pane with track info (distance, time, etc).
      */
     createInfoPane: function (fieldSettings) {
 
@@ -295,7 +293,7 @@
     },
 
     /**
-     * Update the info pane with the latest info
+     * Update the info pane with the latest info.
      */
     updateInfoPane: function(index, fieldSettings) {
 
@@ -308,7 +306,7 @@
     },
 
     /**
-     * Calculate moving average over a maximum sample size of 10
+     * Calculate moving average over a maximum sample size of 10.
      */
     movingAvgSpeed: function(index, fieldSettings) {
 
@@ -334,7 +332,7 @@
     },
 
     /**
-     * Format distance in meters or kms
+     * Format distance in meters or kms.
      */
     formatDistance: function (meters) {
       if(meters === 0) {
@@ -350,7 +348,7 @@
     },
 
     /**
-     * Callback function for the slide event
+     * Callback function for the slide event.
      */
     slide: function (event, ui) {
       var field_name = $(this).parents('.gpx-field-container').attr('id').replace('gpx-field-container-', '');
@@ -365,12 +363,12 @@
       gpxField.showHideLines(index, fieldSettings);
       gpxField.moveCamera(index, fieldSettings);
       gpxField.updateInfoPane(index, fieldSettings);
-      gpxField.setElevationChartSelection(index, fieldSettings);
+      fieldSettings.chart.setSelection([{'row': index, 'column': 1}]);
       fieldSettings.slider.slider('value', index);
     },
 
     /**
-     * Show or hide lines based on the slider position
+     * Show or hide lines based on the slider position.
      */
     showHideLines: function (index, fieldSettings) {
       fieldSettings.distance = 0;
@@ -385,7 +383,7 @@
     },
 
     /**
-     * Show all lines before current index
+     * Show all lines before current index.
      */
     showLine: function (i, fieldSettings) {
 
@@ -393,9 +391,9 @@
       if (typeof fieldSettings.data[i].line === 'undefined') {
         fieldSettings.data[i].line = new google.maps.Polyline({
           path: [fieldSettings.data[i - 1].LatLng, fieldSettings.data[i].LatLng],
-          strokeColor: "#FF0000",
+          strokeColor: fieldSettings.trColour,
           strokeOpacity: 1.0,
-          strokeWeight: 2,
+          strokeWeight: fieldSettings.trStroke,
           map: fieldSettings.map
         });
         fieldSettings.data[i].visible = true;
@@ -413,7 +411,7 @@
     },
 
     /**
-     * Hide all lines after current index
+     * Hide all lines after current index.
      */
     hideLine: function (i, fieldSettings) {
       if (typeof fieldSettings.data[i].visible !== 'undefined' && fieldSettings.data[i].visible) {
@@ -423,7 +421,7 @@
     },
 
     /**
-     * Set camera based on current index
+     * Set camera position based on current index.
      */
     moveCamera: function(i, fieldSettings) {
       var resolution = this.getCameraTrackResolution(fieldSettings);
@@ -504,6 +502,9 @@
 
     },
 
+    /**
+     * Determine the correct camera track to use based off the zoom level.
+     */
     getCameraTrackResolution: function(fieldSettings) {
       var zoom = fieldSettings.map.getZoom();
       return zoom > 13 ? 'fine' : 'normal';

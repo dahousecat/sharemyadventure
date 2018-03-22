@@ -5,6 +5,7 @@
     "require": {
         "cweagans/composer-patches": "^1.6.0",
         "drupal/admin_toolbar": "^1.23",
+        "drupal/coder": "^8.2",
         "drupal/colorbox": "^1.4",
         "drupal/console": "~1.0",
         "drupal/core": "^8.5",
