@@ -284,6 +284,7 @@
       fieldSettings.infoPanes.html('<dl>' +
           '<dt>Distance: </dt><dd class="distance"></dd>' +
           '<dt>Time: </dt><dd class="time"></dd>' +
+          '<dt>Date: </dt><dd class="date"></dd>' +
           '<dt>Speed: </dt><dd class="speed"></dd>' +
           '<dt>Elevation: </dt><dd class="elevation"></dd>' +
           '</dl>');
@@ -300,6 +301,7 @@
       var current = fieldSettings.data[index];
       fieldSettings.infoPanes.find('.distance').html(this.formatDistance(fieldSettings.distance));
       fieldSettings.infoPanes.find('.time').html(current.time);
+      fieldSettings.infoPanes.find('.date').html(current.date);
       fieldSettings.infoPanes.find('.elevation').html(current.ele + ' meters');
       fieldSettings.infoPanes.find('.speed').html(this.movingAvgSpeed(index, fieldSettings));
 

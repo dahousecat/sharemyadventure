@@ -243,6 +243,10 @@ class GpxGoogleMapFormatter extends FormatterBase implements ContainerFactoryPlu
     // of the track.
     $data = $this->trimPoints($items);
 
+    if (!$data) {
+      return ['#markup' => t('No data points found')];
+    }
+
     $camera_track_points['normal'] = $this->createCameraTrack($data, 'normal');
     $camera_track_points['fine'] = $this->createCameraTrack($data, 'fine');
 
