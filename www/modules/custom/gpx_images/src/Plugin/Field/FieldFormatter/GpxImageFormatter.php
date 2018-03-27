@@ -33,6 +33,7 @@ class GpxImageFormatter extends ImageFormatter {
     return [
         'image_style' => '',
         'thumbnail_style' => 'thumbnail',
+        'ts_offset' => 0,
       ] + parent::defaultSettings();
   }
 
@@ -65,6 +66,13 @@ class GpxImageFormatter extends ImageFormatter {
         ],
     ];
 
+    $element['ts_offset'] = [
+      '#title' => t('Timestamp offset (seconds)'),
+      '#type' => 'number',
+      '#default_value' => $this->getSetting('ts_offset'),
+      '#description' => t('If the camera had a slightly different time to your GPS all of the images will appear in slightly the wrong place. Use this field to correct for that error.'),
+    ];
+
     return $element;
   }
 
@@ -92,6 +100,9 @@ class GpxImageFormatter extends ImageFormatter {
       $summary[] = t('Thumbnail style: Original image');
     }
 
+    $ts_offset = $this->getSetting('ts_offset');
+    $summary[] = t('Timestamp offset: @tsos', ['@tsos' => $ts_offset]);
+
     return $summary;
   }
 
@@ -115,6 +126,8 @@ class GpxImageFormatter extends ImageFormatter {
       $base_cache_tags = $image_style->getCacheTags();
     }
 
+    $ts_offset = $this->getSetting('ts_offset');
+
     foreach ($files as $delta => $file) {
       $cache_contexts = [];
       $cache_tags = Cache::mergeTags($base_cache_tags, $file->getCacheTags());
@@ -127,7 +140,7 @@ class GpxImageFormatter extends ImageFormatter {
 
       $image_uri = $file->getFileUri();
 
-      $created = $this->getImageCreatedDate($image_uri);
+      $created = $this->getImageCreatedDate($image_uri) + $ts_offset;
 
       // If we can't get the created date of this image there is no way to
       // place it on the map so skip it
@@ -141,21 +154,35 @@ class GpxImageFormatter extends ImageFormatter {
         $url = ImageStyle::load($image_style_setting)->buildUrl($image_uri);
       }
       else {
-        $url = Url::fromUri(file_create_url($image_uri));
+        $url = Url::fromUri(file_create_url($image_uri))->toString();
       }
 
-      $elements[$delta] = [
+      $size = getimagesize($url);
+      $width = $size[0];
+      $height = $size[1];
+
+      $elements[$created] = [
         '#theme' => 'image_formatter',
         '#item' => $item,
         '#item_attributes' => $item_attributes,
-        '#url' => $url,
+//        '#url' => $url,
         '#image_style' => $thumbnail_style_setting,
         '#cache' => [
           'tags' => $cache_tags,
           'contexts' => $cache_contexts,
         ],
+        '#prefix' => '<a class="photoswipe" href="' . $url . '" data-size="' . $width . 'x' . $height . '">',
+        '#suffix' => '</a>',
       ];
+
     }
+
+    ksort($elements);
+
+    $elements['#prefix'] = '<div class="photoswipe-gallery">';
+    $elements['#suffix'] = '</div>';
+
+    \Drupal::service('photoswipe.assets_manager')->attach($elements);
 
     return $elements;
 

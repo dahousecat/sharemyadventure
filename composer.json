@@ -13,6 +13,7 @@
         "drupal/devel_debug_log": "^1.0@beta",
         "drupal/gpx_track_elevation": "^1.0@alpha",
         "drupal/kint": "^1.2",
+        "drupal/photoswipe": "^1.0@beta",
         "drupal/search_kint": "^1.0",
         "drush/drush": "~8.0|^9.0.0-beta8",
         "hussainweb/drupal-composer-helper": "^1.0",

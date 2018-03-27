@@ -41,3 +41,4 @@ www/sites/default/files
 www/sites/default/files/*
 www/sites/default/files/css/*
 www/core
+www/libraries

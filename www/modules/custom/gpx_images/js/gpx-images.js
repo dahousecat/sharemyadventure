@@ -38,7 +38,7 @@
       fieldSettings.totalSeconds = endTs - startTs;
 
       // TODO: Find a better way to assign this value.
-      var stageWidth = 1000;
+      var stageWidth = 937;
 
       var $gpxImages = $('.gpx-images');
 
