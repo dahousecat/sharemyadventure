@@ -13,6 +13,10 @@
    * Other callback functions that need to be in the global scope live in here.
    */
   Drupal.behaviors.gpx_field = {
+
+    /**
+     * Call back for page ready.
+     */
     attach: function (context, settings) {
 
       // Only attach scripts on first page load.
@@ -30,6 +34,10 @@
       }
 
     },
+
+    /**
+     * Callback for when the map js is ready.
+     */
     initMap: function () {
 
       var gpxfSettings = drupalSettings.gpx_field;
@@ -65,9 +73,18 @@
           }
         }
       }
-    },
-    initChart: function () {
 
+      // Check if gpx images is installed and needs initializing
+      if(typeof Drupal.behaviors.gpx_images.init === 'function') {
+        Drupal.behaviors.gpx_images.init(fieldSettings);
+      }
+
+    },
+
+    /**
+     * Callback when the chart JS has loaded.
+     */
+    initChart: function () {
       var gpxfSettings = drupalSettings.gpx_field;
 
       // Loop gpx map fields
@@ -80,7 +97,23 @@
         }
       }
 
-    }
+    },
+
+    /**
+     * Set the position for the slider, map and chart.
+     */
+    setPosition: function(index, fieldSettings) {
+      gpxField.showHideLines(index, fieldSettings);
+      gpxField.moveCamera(index, fieldSettings);
+      gpxField.updateInfoPane(index, fieldSettings);
+      fieldSettings.chart.setSelection([{'row': index, 'column': 1}]);
+      fieldSettings.slider.slider('value', index);
+
+      // Check if gpx images is installed and call slide event
+      if(typeof Drupal.behaviors.gpx_images.slide === 'function') {
+        Drupal.behaviors.gpx_images.slide(index, fieldSettings);
+      }
+    },
   };
 
   /**
@@ -95,7 +128,7 @@
      * Create the Google map.
      */
     createMap: function (fieldSettings) {
-      console.log(fieldSettings, 'fieldSettings');
+      // console.log(fieldSettings, 'fieldSettings');
       fieldSettings.map = new google.maps.Map(document.getElementById('map-canvas-' + fieldSettings.fieldName), {
         mapTypeId: fieldSettings.mapType
       });
@@ -262,7 +295,7 @@
     elevationChartSelectHandler: function() {
       var fieldSettings = this;
       var index = fieldSettings.chart.getSelection()[0].row;
-      gpxField.setPosition(index, fieldSettings);
+      Drupal.behaviors.gpx_field.setPosition(index, fieldSettings);
     },
 
     /**
@@ -355,19 +388,10 @@
     slide: function (event, ui) {
       var field_name = $(this).parents('.gpx-field-container').attr('id').replace('gpx-field-container-', '');
       var fieldSettings = drupalSettings.gpx_field.fields[field_name];
-      gpxField.setPosition(ui.value, fieldSettings);
+      Drupal.behaviors.gpx_field.setPosition(ui.value, fieldSettings);
     },
 
-    /**
-     * Set the correct position for the slider, map and chart.
-     */
-    setPosition: function(index, fieldSettings) {
-      gpxField.showHideLines(index, fieldSettings);
-      gpxField.moveCamera(index, fieldSettings);
-      gpxField.updateInfoPane(index, fieldSettings);
-      fieldSettings.chart.setSelection([{'row': index, 'column': 1}]);
-      fieldSettings.slider.slider('value', index);
-    },
+
 
     /**
      * Show or hide lines based on the slider position.

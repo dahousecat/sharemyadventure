@@ -1,0 +1,6 @@
+name: 'GPX Images'
+type: module
+description: 'Creates a formatter for the image field to allow combining images with GPX data.'
+core: 8.x
+package: Field formatter
+configure: gpx_field.configuration

@@ -1,0 +1,30 @@
+.gpx-images {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.gpx-images::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  height: 1rem;
+  width: 1px;
+  background-color: red;
+  top: 0rem;
+}
+
+.gpx-images .field__items {
+  display: flex;
+  height: 4rem;
+  position: relative;
+  margin-left: 50%;
+}
+
+.gpx-images .field__item {
+  position: absolute;
+}
+
+.gpx-images img {
+  max-width: none;
+}

@@ -1,0 +1,12 @@
+gpx_images.gpx_images:
+  version: 1.x
+  js:
+    js/gpx-images.js: {}
+  css:
+    theme:
+      css/gpx-images.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupalSettings
+    - core/jquery.once
+    - core/drupal

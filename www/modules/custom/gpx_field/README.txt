@@ -30,12 +30,12 @@ This module differs in the following ways:
   the file field.
 * This module stores values in the DB, as opposed to just storing the GPX file.
   This makes it easier to manipulate values, however also required more memory
-  as needs tp process every row.
+  as it needs to process every row.
 * This allows multiple GPX files to be merged together to create one track. Just
-  be aware if you combine too many files
-  you will start to experience out of memory errors.
+  be aware if you combine too many files you will start to experience out of
+  memory errors.
 * This module has additional formatters - one showing a table of data, and one
-  that allows an animated map.
+  that allows an static or animated map.
 
 REQUIREMENTS
 ------------
