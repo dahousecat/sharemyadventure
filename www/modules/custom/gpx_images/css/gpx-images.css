@@ -27,4 +27,5 @@
 
 .gpx-images img {
   max-width: none;
+  /*margin-left: -50% !important;*/
 }

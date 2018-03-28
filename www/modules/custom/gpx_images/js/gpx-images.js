@@ -26,6 +26,8 @@
       var currentTs = fieldSettings.data[value].ts;
       var perc = ((currentTs - startTs) / fieldSettings.totalSeconds) * -100;
       fieldSettings.$imagesWrapper.css({left: perc + '%'});
+
+
     }
   };
 
@@ -108,7 +110,7 @@
     imageMarkerClick: function() {
       var image = this[0];
       var fieldSettings = this[1];
-      Drupal.behaviors.gpx_field.setPosition(image.nodeIndex, fieldSettings);
+      Drupal.behaviors.gpx_field.animateToPosition(image.nodeIndex, fieldSettings);
     },
     thumbnailClick: function(e) {
       e = e || window.event;
@@ -118,7 +120,7 @@
       var fieldSettings = this[1];
       var $target = $(e.target);
 
-      Drupal.behaviors.gpx_field.setPosition(image.nodeIndex, fieldSettings);
+      Drupal.behaviors.gpx_field.animateToPosition(image.nodeIndex, fieldSettings);
 
       var $gallery = $target.parents('.field__items');
       var index = $target.parents('.field__item').index();
@@ -175,7 +177,7 @@
         fieldSettings.gallery.goTo(fieldSettings.currentImageIndex);
       }
       else {
-        Drupal.behaviors.gpx_field.setPosition(nodeIndex, fieldSettings);
+        Drupal.behaviors.gpx_field.animateToPosition(nodeIndex, fieldSettings);
       }
 
     },

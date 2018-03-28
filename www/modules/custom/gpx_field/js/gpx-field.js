@@ -102,7 +102,7 @@
     /**
      * Set the position for the slider, map and chart.
      */
-    setPosition: function(index, fieldSettings) {
+    animateToPosition: function(index, fieldSettings) {
 
       if(typeof fieldSettings.index === 'undefined') {
         fieldSettings.index = 0;
@@ -141,7 +141,7 @@
     /**
      * Set the position for the slider, map and chart.
      */
-    setPositionOld: function(index, fieldSettings) {
+    setPosition: function(index, fieldSettings) {
       gpxField.showHideLines(index, fieldSettings);
       gpxField.moveCamera(index, fieldSettings);
       gpxField.updateInfoPane(index, fieldSettings);
@@ -334,7 +334,7 @@
     elevationChartSelectHandler: function() {
       var fieldSettings = this;
       var index = fieldSettings.chart.getSelection()[0].row;
-      Drupal.behaviors.gpx_field.setPosition(index, fieldSettings);
+      Drupal.behaviors.gpx_field.animateToPosition(index, fieldSettings);
     },
 
     /**
@@ -429,8 +429,6 @@
       var fieldSettings = drupalSettings.gpx_field.fields[field_name];
       Drupal.behaviors.gpx_field.setPosition(ui.value, fieldSettings);
     },
-
-
 
     /**
      * Show or hide lines based on the slider position.
