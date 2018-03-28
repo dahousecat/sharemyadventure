@@ -12,7 +12,9 @@
    */
   Drupal.behaviors.gpx_images = {
     attach: function (context, settings) {
-
+      if(!$('.pswp').length) {
+        $('body').append(settings.gpx_images.photoswipe_container);
+      }
     },
     init: function(fieldSettings) {
       gpxImages.initImages(fieldSettings);
@@ -44,6 +46,7 @@
 
       fieldSettings.$imagesWrapper = $gpxImages.find('.field__items');
       fieldSettings.$imagesWrapper.css({width: stageWidth + 'px'});
+      fieldSettings.$imagesWrapper.attr('data-pswp-uid', fieldSettings.$imagesWrapper.index());
 
       $gpxImages.find('.field__item').each(function(){
 
@@ -61,10 +64,10 @@
           fieldSettings.images = [];
         }
 
+        image.$image.on('click', gpxImages.thumbnailClick.bind([image, fieldSettings]));
+
         fieldSettings.images.push(image);
       });
-
-      console.log(fieldSettings, 'fieldSettings');
 
     },
     placeMapMarker: function(image, fieldSettings) {
@@ -106,6 +109,80 @@
       var image = this[0];
       var fieldSettings = this[1];
       Drupal.behaviors.gpx_field.setPosition(image.nodeIndex, fieldSettings);
+    },
+    thumbnailClick: function(e) {
+      e = e || window.event;
+      e.preventDefault ? e.preventDefault() : e.returnValue = false;
+
+      var image = this[0];
+      var fieldSettings = this[1];
+      var $target = $(e.target);
+
+      Drupal.behaviors.gpx_field.setPosition(image.nodeIndex, fieldSettings);
+
+      var $gallery = $target.parents('.field__items');
+      var index = $target.parents('.field__item').index();
+      gpxImages.openPhotoSwipe(index, $gallery, fieldSettings);
+
+    },
+    openPhotoSwipe: function(index, $gallery, fieldSettings) {
+
+      var images = $gallery.find('a.photoswipe');
+      var items = [];
+      images.each(function (index) {
+        var $image = $(this);
+        var size = $image.data('size') ? $image.data('size').split('x') : ['',''];
+        items.push(
+            {
+              src : $image.attr('href'),
+              w: size[0],
+              h: size[1],
+              title : $image.data('overlay-title')
+            }
+        );
+      });
+
+      // define options
+      var options = {
+        index: index,
+        galleryUID: $gallery.data('pswp-uid'),
+        bgOpacity: 0.7,
+        loop: false
+      };
+
+      // Pass data to PhotoSwipe and initialize it
+      var pswpElement = $('.pswp')[0];
+      fieldSettings.gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, options);
+      fieldSettings.gallery.init();
+
+      // Bind listener to the slide change event
+      fieldSettings.gallery.listen('beforeChange', gpxImages.photoSwipeBeforeChange.bind(fieldSettings));
+      fieldSettings.gallery.listen('beforeChange', gpxImages.photoSwipeAfterChange.bind(fieldSettings));
+
+    },
+    photoSwipeBeforeChange: function() {
+      var fieldSettings = this;
+      var imageIndex = fieldSettings.gallery.getCurrentIndex();
+      var nodeIndex = fieldSettings.images[imageIndex].nodeIndex;
+
+      var diff = 1;
+      if(typeof fieldSettings.currentImageIndex === 'number') {
+        diff = Math.abs(fieldSettings.currentImageIndex - imageIndex);
+      }
+
+      // Don't allow looping
+      if(diff !== 1) {
+        fieldSettings.gallery.goTo(fieldSettings.currentImageIndex);
+      }
+      else {
+        Drupal.behaviors.gpx_field.setPosition(nodeIndex, fieldSettings);
+      }
+
+    },
+    photoSwipeAfterChange: function() {
+      var fieldSettings = this;
+      var imageIndex = fieldSettings.gallery.getCurrentIndex();
+      fieldSettings.currentImageIndex = imageIndex;
     }
   };
 

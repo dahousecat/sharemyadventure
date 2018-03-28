@@ -7,11 +7,37 @@ function gpx_images_preprocess_field(&$variables) {
   if($variables['element']['#formatter'] == 'gpx_images') {
     $variables['attributes']['class'] = ['gpx-images'];
     $variables['#attached']['library'][] = 'gpx_images/gpx_images.gpx_images';
+    $variables['#attached']['library'][] = 'gpx_images/photoswipe';
+    $template = ["#theme" => 'photoswipe_container'];
+    $variables['#attached']['drupalSettings']['gpx_images']['photoswipe_container'] = render($template);
   }
+}
 
-  $moduleHandler = \Drupal::service('module_handler');
-  if ($moduleHandler->moduleExists('photoswipe')){
-   // $variables['#attached']['library'][] = 'photoswipe/photoswipe';
-//    $variables['#attached']['library'][] = 'photoswipe/photoswipe.init';
-  }
+/**
+ * Implements hook_libraries_info().
+ */
+function gpx_images_libraries_info() {
+  $libraries['photoswipe'] = array(
+    'name' => 'Photoswipe',
+    'vendor url' => 'https://github.com/dimsemenov/PhotoSwipe',
+    'download url' => 'https://github.com/dimsemenov/PhotoSwipe/archive/master.zip',
+    'version arguments' => array(
+      'file' => 'dist/photoswipe.min.js',
+      'pattern' => '/v([\d.]+)/', // PhotoSwipe - v4.1.1 - 2015-12-24
+      'lines' => 1,
+      'cols' => 30,
+    ),
+  );
+  return $libraries;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function gpx_images_theme() {
+  return array(
+    'photoswipe_container' => array(
+      'variables' => array(),
+    ),
+  );
 }

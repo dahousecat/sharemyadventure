@@ -103,6 +103,45 @@
      * Set the position for the slider, map and chart.
      */
     setPosition: function(index, fieldSettings) {
+
+      if(typeof fieldSettings.index === 'undefined') {
+        fieldSettings.index = 0;
+      }
+
+      // GPX field container is just a dummy object we animate so we can use
+      // the step callback function to do our actual animation.
+
+      // Set initial value to current index
+      $('.gpx-field-container').css({left: fieldSettings.index});
+
+      // And animate to the new index
+      $('.gpx-field-container').animate({
+        left: index
+      }, {
+        step: function( now, fx ) {
+          var currentIndex = Math.round(now);
+
+          gpxField.showHideLines(currentIndex, fieldSettings);
+          gpxField.moveCamera(currentIndex, fieldSettings);
+          fieldSettings.chart.setSelection([{'row': currentIndex, 'column': 1}]);
+          fieldSettings.slider.slider('value', currentIndex);
+          gpxField.updateInfoPane(currentIndex, fieldSettings);
+
+          // Check if gpx images is installed and call slide event
+          if(typeof Drupal.behaviors.gpx_images.slide === 'function') {
+            Drupal.behaviors.gpx_images.slide(currentIndex, fieldSettings);
+          }
+        },
+        complete: function(){
+          fieldSettings.index = index;
+        }
+      });
+    },
+
+    /**
+     * Set the position for the slider, map and chart.
+     */
+    setPositionOld: function(index, fieldSettings) {
       gpxField.showHideLines(index, fieldSettings);
       gpxField.moveCamera(index, fieldSettings);
       gpxField.updateInfoPane(index, fieldSettings);
@@ -409,7 +448,7 @@
     },
 
     /**
-     * Show all lines before current index.
+     * Show line with index passed in.
      */
     showLine: function (i, fieldSettings) {
 
@@ -437,7 +476,7 @@
     },
 
     /**
-     * Hide all lines after current index.
+     * Hide line with index passed in.
      */
     hideLine: function (i, fieldSettings) {
       if (typeof fieldSettings.data[i].visible !== 'undefined' && fieldSettings.data[i].visible) {

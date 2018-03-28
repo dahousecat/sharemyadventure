@@ -182,7 +182,11 @@ class GpxImageFormatter extends ImageFormatter {
     $elements['#prefix'] = '<div class="photoswipe-gallery">';
     $elements['#suffix'] = '</div>';
 
-    \Drupal::service('photoswipe.assets_manager')->attach($elements);
+    $moduleHandler = \Drupal::service('module_handler');
+    if ($moduleHandler->moduleExists('photoswipe')){
+      $elements['#attached']['library'][] = 'gpx_images/photoswipe';
+//      \Drupal::service('gpx_images.assets_manager')->attach($elements);
+    }
 
     return $elements;
 
